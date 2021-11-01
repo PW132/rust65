@@ -14,24 +14,24 @@ struct CpuStatus
     sp: u8
 }
 
-fn execute<'a>(memory: &'a mut[u8; 0xffff], reg: &'a mut CpuStatus) -> Result<bool, String> //runs a single CPU instruction, returns error
+fn execute<'a>(memory: &'a mut[u8; 0xffff], reg: &'a mut CpuStatus) -> Result<bool, String> //runs a single CPU instruction, returns errors if there are any
 {
     if reg.pc == 0xfffc
     {
         let lo_byte : u8 = bus::read(&memory,0xfffc); //retrieve reset vector from ROM
         let hi_byte : u8 = bus::read(&memory,0xfffd);
 
-        reg.pc = lo_byte as u16 + (hi_byte as u16 * 256); //set new program counter
+        reg.pc = lo_byte as u16 + (hi_byte as u16 * 256); //set new program counter at reset routine
 
         println!("Starting program execution at {}", reg.pc);
     }
 
-    let opcode: u8 = bus::read(&memory, reg.pc);
+    let opcode: u8 = bus::read(&memory, reg.pc); //get the opcode
 
-    match opcode
+    match opcode //which instruction is it?
     {
         1 => println!("eughh"),
-        other => return Err(format!("Unrecognized opcode {}!", other))
+        other => return Err(format!("Unrecognized opcode {}! Halting execution...", other)) //whoops! invalid opcode
     }
 
     Ok(true)
@@ -53,9 +53,9 @@ fn main() {
 
     loop
     {
-        if cpu_running
+        if cpu_running //if true, let's run code
         {
-            let check: Result<bool, String> = execute(&mut memory, &mut reg);
+            let check: Result<bool, String> = execute(&mut memory, &mut reg); //execute an instruction, check for errors
             if check.is_err()
             {
                 println!("{}",check.unwrap_err());
@@ -70,9 +70,9 @@ fn main() {
                 }
             }
         }
-        else
+        else //CPU is paused, drop into interactive monitor
         {   
-            last_cmd = read!("{}\n");
+            last_cmd = read!("{}\n"); //get text input and store it whole
             
             if last_cmd.trim() == "run"
             {
