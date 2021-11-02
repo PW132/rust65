@@ -11,7 +11,7 @@ pub fn write(memspace: &mut[u8; 0xffff], addr: u16, data: u8) //bus arbitration 
 {
     match addr
     {
-        a if a > 0xe000 => { println!("Attempt to write byte {0} to ROM at address {1}!", data, addr) }, //disallow writes to ROM
+        a if a > 0xe000 => { println!("Attempt to write byte {:#04x} to ROM at address {:#06x}!", data, addr) }, //disallow writes to ROM
         _ => memspace[addr as usize] = data //allow writes to RAM
     }
 
