@@ -6,6 +6,7 @@ pub struct Segment<'a>
     pub read_enabled: bool
 }
 
+
 pub fn read(memspace: &[Segment], addr: u16) -> u8 //bus arbitration for reading bytes
 {
     let mut read_byte: u8 = 0;
@@ -22,6 +23,7 @@ pub fn read(memspace: &[Segment], addr: u16) -> u8 //bus arbitration for reading
     }
     return read_byte;
 }
+
 
 pub fn write(memspace: &mut[Segment], addr: u16, data: u8) //bus arbitration for writing bytes
 {

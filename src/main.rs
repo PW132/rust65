@@ -6,9 +6,7 @@ mod cpu;
 
 use crate::bus::Segment;
 use crate::cpu::CpuStatus;
-use crate::cpu::execute;
-use std::io::Read;
-use std::io::{Error, ErrorKind, Write};
+use std::io::{Read, Error, ErrorKind, Write};
 use std::fs::File;
 use std::path::Path;
 use std::panic;
@@ -17,6 +15,7 @@ use text_io::read;
 
 fn main() {
     println!("Starting emulator...");
+
 
     let rom_path = Path::new("applesoft-lite-0.4.bin"); //read ROM file and keep resident in an array
     let mut rom_file = match File::open(rom_path) 
@@ -28,8 +27,10 @@ fn main() {
     rom_file.read(&mut rom_array);
     let rom: &mut[u8] = &mut rom_array[..];
 
+
     let mut dram_array: [u8; 0xdfff] = [0; 0xdfff]; //reserve 64KB of memory address space
     let dram: &mut[u8] = &mut dram_array[..];
+
 
     let memory: &[Segment] = //define memory map
     &[
@@ -42,14 +43,17 @@ fn main() {
     let mut cpu_running: bool = false;
     let mut last_cmd: String; //the command line buffer
 
+
     print!("Startup complete! \n>");
     std::io::stdout().flush().unwrap();
 
+    
     loop
     {
         if cpu_running //if true, let's run code
         {
-            let check: Result<bool, String> = execute(memory, &mut reg); //execute an instruction, check for errors
+            let check: Result<bool, String> = cpu::execute(memory, &mut reg); //execute an instruction, check for errors
+
             if check.is_err()
             {
                 println!("{}",check.unwrap_err());
@@ -73,14 +77,16 @@ fn main() {
             {
                 "run" => cpu_running = true, //run command: start running code
                 "status" => cpu::status_report(&reg), //status command: get status of registers
+
                 "step" => //step command: run a single operation
-                {   let check: Result<bool, String> = execute(memory, &mut reg);
+                {   let check: Result<bool, String> = cpu::execute(memory, &mut reg);
                     if check.is_err()
                     {
                         println!("{}",check.unwrap_err());
                     }
     
                     cpu::status_report(&reg);},
+
                 "exit" => break, //exit command: close emulator
                 _ => println!("What?")
             }

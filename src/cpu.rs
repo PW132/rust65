@@ -12,11 +12,13 @@ pub struct CpuStatus //contains the registers of the CPU, the clock speed, and o
     pub clock_speed: u32
 }
 
+
 pub fn status_report(reg: &CpuStatus)
 {
     println!("Current CPU status:");
     println!("X: {:#04x} Y: {:#04x} A: {:#04x} SP: {:#04x} SR: {:#010b} PC: {:#06x}", reg.x, reg.y, reg.a, reg.sp, reg.sr, reg.pc)
 }
+
 
 pub fn execute<'a>(memory: &[Segment], reg: &'a mut CpuStatus) -> Result<bool, String> //runs a single CPU instruction, returns errors if there are any
 {
@@ -41,6 +43,7 @@ pub fn execute<'a>(memory: &[Segment], reg: &'a mut CpuStatus) -> Result<bool, S
     Ok(true)
 }
 
+
 pub fn push_stack(memory: &mut[Segment], reg: &mut CpuStatus, data: u8) //push a byte onto the stack and update the pointer
 {
     if reg.debug_text { print!("Pushing {:#04x} onto stack... ", data) }
@@ -55,6 +58,7 @@ pub fn push_stack(memory: &mut[Segment], reg: &mut CpuStatus, data: u8) //push a
 
     bus::write(memory, reg.sp as u16 + 0x101, data)
 }
+
 
 pub fn pull_stack(memory: &mut[Segment], reg: &mut CpuStatus) -> u8  //pull a byte from the stack and update the pointer
 {
