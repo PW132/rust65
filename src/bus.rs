@@ -1,18 +1,40 @@
-pub fn read(memspace: &[u8; 0xffff], addr: u16) -> u8 //bus arbitration for reading bytes
+pub struct Segment<'a>
 {
-    match addr 
-    {
-        _ => return memspace[addr as usize]
-    }
-    
+    pub data: &'a mut [u8],
+    pub start_addr: u16,
+    pub write_enabled: bool,
+    pub read_enabled: bool
 }
 
-pub fn write(memspace: &mut[u8; 0xffff], addr: u16, data: u8) //bus arbitration for writing bytes
+pub fn read(memspace: &[Segment], addr: u16) -> u8 //bus arbitration for reading bytes
 {
-    match addr
+    let mut read_byte: u8 = 0;
+    for bank in memspace
     {
-        a if a > 0xe000 => { println!("Attempt to write byte {:#04x} to ROM at address {:#06x}!", data, addr) }, //disallow writes to ROM
-        _ => memspace[addr as usize] = data //allow writes to RAM
+        if addr >= bank.start_addr && addr < (bank.data.len() as u16 + bank.start_addr)
+        {
+            if bank.read_enabled
+            {
+                read_byte = bank.data[(addr - bank.start_addr) as usize];
+                break;
+            }
+        }   
+    }
+    return read_byte;
+}
+
+pub fn write(memspace: &mut[Segment], addr: u16, data: u8) //bus arbitration for writing bytes
+{
+    for bank in memspace
+    {
+        if addr >= bank.start_addr && addr < (bank.data.len() as u16 + bank.start_addr)
+        {
+            if bank.write_enabled
+            {
+                bank.data[(addr - bank.start_addr) as usize] = data;
+                break;
+            }
+        }
     }
 
     return;

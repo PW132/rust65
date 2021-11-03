@@ -4,9 +4,13 @@
 mod bus;
 mod cpu;
 
+use crate::bus::Segment;
 use crate::cpu::CpuStatus;
 use crate::cpu::execute;
+use std::io::Read;
 use std::io::{Error, ErrorKind};
+use std::fs::File;
+use std::path::Path;
 use std::panic;
 use text_io::try_scan;
 use text_io::read;
@@ -14,7 +18,27 @@ use text_io::read;
 fn main() {
     println!("Starting emulator...");
 
-    let mut memory: [u8; 0xffff] = [0; 0xffff]; //reserve 64KB of memory address space
+    let rom_path = Path::new("applesoft-lite-0.4.bin");
+
+    let mut rom_file = match File::open(rom_path) 
+    {
+        Err(why) => panic!("couldn't open {}: {}", rom_path.display(), why),
+        Ok(file) => file
+    };
+
+    let mut rom_array: [u8; 0x1fff] = [0; 0x1fff];
+    rom_file.read(&mut rom_array);
+
+    let rom: &mut[u8] = &mut rom_array[..];
+
+    let mut dram_array: [u8; 0xdfff] = [0; 0xdfff]; //reserve 64KB of memory address space
+    let dram: &mut[u8] = &mut dram_array[..];
+
+    let memory: &[Segment] = 
+    &[
+        Segment {data: dram, start_addr: 0, write_enabled: true, read_enabled: true},
+        Segment {data: rom, start_addr: 0xe000, write_enabled: false, read_enabled: true}
+    ];
 
     let mut reg = CpuStatus {a:0, x:0, y:0, pc:0xfffc, sr:0b00100100, sp:0, debug_text: true, clock_speed: 0}; //create and initialize registers
 
@@ -25,7 +49,7 @@ fn main() {
     {
         if cpu_running //if true, let's run code
         {
-            let check: Result<bool, String> = execute(&mut memory, &mut reg); //execute an instruction, check for errors
+            let check: Result<bool, String> = execute(memory, &mut reg); //execute an instruction, check for errors
             if check.is_err()
             {
                 println!("{}",check.unwrap_err());
@@ -52,7 +76,7 @@ fn main() {
             }
             else if last_cmd.trim() == "step"
             {
-                let check: Result<bool, String> = execute(&mut memory, &mut reg); //execute an instruction, check for errors
+                let check: Result<bool, String> = execute(memory, &mut reg); //execute an instruction, check for errors
                 if check.is_err()
                 {
                     println!("{}",check.unwrap_err());

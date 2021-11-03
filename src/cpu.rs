@@ -1,4 +1,5 @@
 use crate::bus;
+use crate::bus::Segment;
 pub struct CpuStatus //contains the registers of the CPU, the clock speed, and other settings.
 {
     pub a: u8,
@@ -17,7 +18,7 @@ pub fn status_report(reg: &CpuStatus)
     println!("X: {:#04x} Y: {:#04x} A: {:#04x} SP: {:#04x} SR: {:#010b} PC: {:#06x}", reg.x, reg.y, reg.a, reg.sp, reg.sr, reg.pc)
 }
 
-pub fn execute<'a>(memory: &'a mut[u8; 0xffff], reg: &'a mut CpuStatus) -> Result<bool, String> //runs a single CPU instruction, returns errors if there are any
+pub fn execute<'a>(memory: &[Segment], reg: &'a mut CpuStatus) -> Result<bool, String> //runs a single CPU instruction, returns errors if there are any
 {
     if reg.pc == 0xfffc //do we need to reset the CPU?
     {
@@ -40,11 +41,11 @@ pub fn execute<'a>(memory: &'a mut[u8; 0xffff], reg: &'a mut CpuStatus) -> Resul
     Ok(true)
 }
 
-pub fn push_stack(memory: &mut[u8; 0xffff], reg: &mut CpuStatus, data: u8) //push a byte onto the stack and update the pointer
+pub fn push_stack(memory: &mut[Segment], reg: &mut CpuStatus, data: u8) //push a byte onto the stack and update the pointer
 {
     if reg.debug_text { print!("Pushing {:#04x} onto stack... ", data) }
 
-    reg.sp -= 1;
+    reg.sp = reg.sp.wrapping_sub(1);
 
     if reg.debug_text 
     {
@@ -55,13 +56,13 @@ pub fn push_stack(memory: &mut[u8; 0xffff], reg: &mut CpuStatus, data: u8) //pus
     bus::write(memory, reg.sp as u16 + 0x101, data)
 }
 
-pub fn pull_stack(memory: &mut[u8; 0xffff], reg: &mut CpuStatus) -> u8  //pull a byte from the stack and update the pointer
+pub fn pull_stack(memory: &mut[Segment], reg: &mut CpuStatus) -> u8  //pull a byte from the stack and update the pointer
 {
     let pulled: u8 = bus::read(memory, reg.sp as u16 + 0x101);
 
     if reg.debug_text { print!("Pulling {:#04x} from stack... ", pulled) }
 
-    reg.sp += 1;
+    reg.sp = reg.sp.wrapping_add(1);
 
     if reg.debug_text 
     {
