@@ -7,7 +7,7 @@ mod op;
 
 use crate::bus::Segment;
 use crate::cpu::CpuStatus;
-use std::io::{Read, Error, ErrorKind, Write};
+use std::io::{Read, Error, ErrorKind, Write, stdout};
 use std::fs::File;
 use std::path::Path;
 use std::panic;
@@ -29,12 +29,12 @@ fn main() {
     let rom: &mut[u8] = &mut rom_array[..];
 
 
-    let mut dram_array: [u8; 0xdfff] = [0; 0xdfff]; //reserve 64KB of memory address space
+    let mut dram_array: [u8; 0xdfff] = [0; 0xdfff]; //reserve 56KB of memory address space
     let dram: &mut[u8] = &mut dram_array[..];
 
 
-    let memory: &[Segment] = //define memory map
-    &[
+    let memory: &mut[Segment] = //define memory map
+    &mut[
         Segment {data: dram, start_addr: 0, write_enabled: true, read_enabled: true},
         Segment {data: rom, start_addr: 0xe000, write_enabled: false, read_enabled: true}
     ];
@@ -46,7 +46,7 @@ fn main() {
 
 
     print!("Startup complete! \n>");
-    std::io::stdout().flush().unwrap();
+    stdout().flush().unwrap();
 
     
     loop
@@ -87,7 +87,7 @@ fn main() {
                 _ => println!("What?")
             }
             print!(">");
-            std::io::stdout().flush().unwrap();
+            stdout().flush().unwrap();
         }
     }
 

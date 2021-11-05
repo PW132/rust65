@@ -106,8 +106,10 @@ pub fn status_report(reg: &CpuStatus)
 }
 
 
-pub fn execute<'a>(memory: &[Segment], reg: &'a mut CpuStatus) -> Result<u8, String> //runs a single CPU instruction, returns errors if there are any
+pub fn execute<'a>(memory: &mut [Segment], reg: &'a mut CpuStatus) -> Result<u8, String> //runs a single CPU instruction, returns errors if there are any
 {
+    let mut cycles: u8 = 0;
+
     if reg.pc == 0xfffc //do we need to reset the CPU?
     {
         let lo_byte : u8 = bus::read(&memory,0xfffc); //retrieve reset vector from ROM
@@ -115,6 +117,8 @@ pub fn execute<'a>(memory: &[Segment], reg: &'a mut CpuStatus) -> Result<u8, Str
 
         reg.pc = lo_byte as u16 + (hi_byte as u16 * 256); //set new program counter at reset routine
         
+        cycles += 7;
+
         if reg.debug_text { println!("Starting program execution at {:#06x}", reg.pc) }
     }
 
@@ -123,8 +127,9 @@ pub fn execute<'a>(memory: &[Segment], reg: &'a mut CpuStatus) -> Result<u8, Str
     match opcode //which instruction is it?
     {
         1 => println!("eughh"),
+        0x4a => {reg.pc += 1; cycles += op::lsr(memory, reg, 2, None);},
         other => return Err(format!("Unrecognized opcode {:#04x}! Halting execution...", other)) //whoops! invalid opcode
     }
 
-    Ok(0)
+    Ok(cycles)
 }
