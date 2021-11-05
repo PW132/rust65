@@ -3,6 +3,7 @@
 
 mod bus;
 mod cpu;
+mod op;
 
 use crate::bus::Segment;
 use crate::cpu::CpuStatus;
@@ -38,7 +39,7 @@ fn main() {
         Segment {data: rom, start_addr: 0xe000, write_enabled: false, read_enabled: true}
     ];
 
-    let mut reg = CpuStatus {a:0, x:0, y:0, pc:0xfffc, sr:0b00100100, sp:0, debug_text: true, clock_speed: 0}; //create and initialize registers
+    let mut reg = CpuStatus::new(1000000); //create and initialize registers and other cpu state
 
     let mut cpu_running: bool = false;
     let mut last_cmd: String; //the command line buffer
@@ -52,21 +53,16 @@ fn main() {
     {
         if cpu_running //if true, let's run code
         {
-            let check: Result<bool, String> = cpu::execute(memory, &mut reg); //execute an instruction, check for errors
+            let check: Result<u8, String> = cpu::execute(memory, &mut reg); //execute an instruction, check for errors
 
             if check.is_err()
             {
                 println!("{}",check.unwrap_err());
                 cpu::status_report(&reg);
                 cpu_running = false;
-            }
-            else 
-            {
-                if !check.unwrap_or(true)
-                {
-                    println!("Pausing program execution...");
-                    cpu_running = false;
-                }
+
+                print!(">");
+                std::io::stdout().flush().unwrap();
             }
         }
         else //CPU is paused, drop into interactive monitor
@@ -79,13 +75,13 @@ fn main() {
                 "status" => cpu::status_report(&reg), //status command: get status of registers
 
                 "step" => //step command: run a single operation
-                {   let check: Result<bool, String> = cpu::execute(memory, &mut reg);
+                {   let check: Result<u8, String> = cpu::execute(memory, &mut reg);
                     if check.is_err()
                     {
                         println!("{}",check.unwrap_err());
                     }
     
-                    cpu::status_report(&reg);},
+                    cpu::status_report(&reg); },
 
                 "exit" => break, //exit command: close emulator
                 _ => println!("What?")

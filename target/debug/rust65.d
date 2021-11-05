@@ -1,1 +1,1 @@
-/home/peterw/Documents/rust65-1/target/debug/rust65: /home/peterw/Documents/rust65-1/src/bus.rs /home/peterw/Documents/rust65-1/src/cpu.rs /home/peterw/Documents/rust65-1/src/main.rs
+c:\Users\Peter\Documents\rust65\target\debug\rust65.exe: c:\Users\Peter\Documents\rust65\src\bus.rs c:\Users\Peter\Documents\rust65\src\cpu.rs c:\Users\Peter\Documents\rust65\src\main.rs c:\Users\Peter\Documents\rust65\src\op.rs
