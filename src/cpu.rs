@@ -23,79 +23,38 @@ impl CpuStatus
 
     pub fn setCarry(&mut self, flag: bool)
     {
-        if flag
-        {
-            self.sr |= 0b1;
-        }
-        else 
-        {
-            self.sr &= !0b1;
-        }
+        if flag { self.sr |= 0b1 } else { self.sr &= !0b1 }
     }
 
 
     pub fn setZero(&mut self, flag: bool)
     {
-        if flag
-        {
-            self.sr |= 0b10;
-        }
-        else 
-        {
-            self.sr &= !0b10;
-        }
+        if flag { self.sr |= 0b10 } else { self.sr &= !0b10 }
     }
 
 
     pub fn setInterrupt(&mut self, flag: bool)
     {
-        if flag
-        {
-            self.sr |= 0b100;
-        }
-        else 
-        {
-            self.sr &= !0b100;
-        }
+        if flag { self.sr |= 0b100 } else { self.sr &= !0b100 }
     }
 
 
     pub fn setDecimal(&mut self, flag: bool)
     {
-        if flag
-        {
-            self.sr |= 0b1000;
-        }
-        else 
-        {
-            self.sr &= !0b1000;
-        }
+
+        if flag { self.sr |= 0b1000 } else { self.sr &= !0b1000 }
     }
 
 
     pub fn setOverflow(&mut self, flag: bool)
     {
-        if flag
-        {
-            self.sr |= 0b1000000;
-        }
-        else 
-        {
-            self.sr &= !0b1000000;
-        }
+        if flag { self.sr |= 0b1000000 } else { self.sr &= !0b1000000 }
     }
 
 
     pub fn setNegative(&mut self, flag: bool)
     {
-        if flag
-        {
-            self.sr |= 0b10000000;
-        }
-        else 
-        {
-            self.sr &= !0b10000000;
-        }
+        if flag { self.sr |= 0b10000000 } else { self.sr &= !0b10000000 }
     }
 }
 
@@ -138,10 +97,10 @@ pub fn execute<'a>(memory: &mut [Segment], reg: &'a mut CpuStatus) -> Result<u8,
         0x4a => {cycles += op::lsr(memory, reg, 2, None); reg.pc += 1;}, //LSR A
         0x46 => {addr = bus::zp(memory, reg); cycles += op::lsr(memory, reg, 5, Some(addr));}, //LSR ZP
         //LSR ZP,X
-        0x4e => {addr = bus::absolute(memory, reg); cycles += op::lsr(memory, reg, 5, Some(addr));}, //LSR Absolute
+        0x4e => {addr = bus::absolute(memory, reg); cycles += op::lsr(memory, reg, 6, Some(addr));}, //LSR Absolute
         //LSR Absolute,X
         
-        
+
         other => return Err(format!("Unrecognized opcode {:#04x}! Halting execution...", other)) //whoops! invalid opcode
     }
 
