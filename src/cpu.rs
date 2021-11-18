@@ -109,6 +109,7 @@ pub fn status_report(reg: &CpuStatus)
 pub fn execute<'a>(memory: &mut [Segment], reg: &'a mut CpuStatus) -> Result<u8, String> //runs a single CPU instruction, returns errors if there are any
 {
     let mut cycles: u8 = 0;
+    let mut addr: u16 = 0;
 
     if reg.pc == 0xfffc //do we need to reset the CPU?
     {
@@ -124,10 +125,23 @@ pub fn execute<'a>(memory: &mut [Segment], reg: &'a mut CpuStatus) -> Result<u8,
 
     let opcode: u8 = bus::read(&memory, reg.pc); //get the current opcode
 
+    reg.pc += 1; 
+
     match opcode //which instruction is it?
     {
-        1 => println!("eughh"),
-        0x4a => {reg.pc += 1; cycles += op::lsr(memory, reg, 2, None);},
+        0xa9 => {cycles += op::lda(memory, reg, 2, reg.pc); reg.pc += 1;}, //LDA Immediate
+        0xa5 => {addr = bus::zp(memory, reg); cycles += op::lda(memory, reg, 3, addr)}, //LDA ZP
+        //LDA ZP,X
+        0xad => {addr = bus::absolute(memory, reg); cycles += op::lda(memory, reg, 4, addr)}, //LDA Absolute
+
+
+        0x4a => {cycles += op::lsr(memory, reg, 2, None); reg.pc += 1;}, //LSR A
+        0x46 => {addr = bus::zp(memory, reg); cycles += op::lsr(memory, reg, 5, Some(addr));}, //LSR ZP
+        //LSR ZP,X
+        0x4e => {addr = bus::absolute(memory, reg); cycles += op::lsr(memory, reg, 5, Some(addr));}, //LSR Absolute
+        //LSR Absolute,X
+        
+        
         other => return Err(format!("Unrecognized opcode {:#04x}! Halting execution...", other)) //whoops! invalid opcode
     }
 

@@ -7,6 +7,33 @@ pub struct Segment<'a>
     pub read_enabled: bool
 }
 
+pub fn absolute(memspace: &[Segment], reg: &mut CpuStatus) -> u16
+{
+    let lo_byte: u8;
+    let hi_byte: u8;
+    let mut o_addr: u16 = 0;
+
+    lo_byte = read(memspace, reg.pc);
+    reg.pc += 1;
+    hi_byte = read(memspace, reg.pc);
+    reg.pc += 1;
+
+    o_addr += hi_byte as u16;
+    o_addr <<= 8;
+    o_addr += lo_byte as u16;
+
+    return o_addr;
+}
+
+pub fn zp(memspace: &[Segment], reg: &mut CpuStatus) -> u16
+{
+    let o_addr: u16;
+
+    o_addr = read(memspace, reg.pc) as u16;
+    reg.pc += 1;
+
+    return o_addr;
+}
 
 pub fn read(memspace: &[Segment], addr: u16) -> u8 //bus arbitration for reading bytes
 {

@@ -3,6 +3,19 @@ use crate::cpu::CpuStatus;
 use crate::bus;
 use crate::bus::Segment;
 
+pub fn lda(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: u16) -> u8
+{
+    let byte: u8;
+    byte = bus::read(memory, i_addr);
+
+    reg.a = byte;
+
+    reg.setNegative(byte > 0x7f);
+    reg.setZero(byte == 0);
+
+    return cycles
+}
+
 pub fn lsr(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: Option<u16>) -> u8
 {
     let mut byte: u8;
