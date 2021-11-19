@@ -11,8 +11,7 @@ use std::io::{Read, Error, ErrorKind, Write, stdout};
 use std::fs::File;
 use std::path::Path;
 use std::panic;
-use text_io::try_scan;
-use text_io::read;
+use text_io::{try_scan, read};
 
 fn main() {
     println!("Starting emulator...");
