@@ -9,6 +9,7 @@ pub struct CpuStatus //contains the registers of the CPU, the clock speed, and o
     pub pc: u16,
     pub sr: u8,
     pub sp: u8,
+    pub last_op: u8,
     pub debug_text: bool,
     pub clock_speed: u32
 }
@@ -17,7 +18,7 @@ impl CpuStatus
 {
     pub fn new(speed: u32) -> CpuStatus
     {
-        CpuStatus {a:0, x:0, y:0, pc:0xfffc, sr:0b00100100, sp:0, debug_text: false, clock_speed: speed}
+        CpuStatus {a:0, x:0, y:0, pc:0xfffc, sr:0b00100100, sp:0, last_op: 0, debug_text: false, clock_speed: speed}
     }
 
 
@@ -61,7 +62,7 @@ impl CpuStatus
 pub fn status_report(reg: &CpuStatus)
 {
     println!("Current CPU status:");
-    println!("X: {:#04x} Y: {:#04x} A: {:#04x} SP: {:#04x} SR: {:#010b} PC: {:#06x}", reg.x, reg.y, reg.a, reg.sp, reg.sr, reg.pc)
+    println!("Last Opcode: {:#04x} X: {:#04x} Y: {:#04x} A: {:#04x} SP: {:#04x} SR: {:#010b} PC: {:#06x}", reg.last_op, reg.x, reg.y, reg.a, reg.sp, reg.sr, reg.pc)
 }
 
 
@@ -83,23 +84,57 @@ pub fn execute<'a>(memory: &mut [Segment], reg: &'a mut CpuStatus) -> Result<u8,
     }
 
     let opcode: u8 = bus::read(&memory, reg.pc); //get the current opcode
+    reg.last_op = opcode;
 
     reg.pc += 1; 
 
     match opcode //which instruction is it?
     {
+        //Clear Flag Instructions
+        0x18 => {cycles += 2; reg.setCarry(false)}, //CLC
+        0xd8 => {cycles += 2; reg.setDecimal(false)}, //CLD
+        0x58 => {cycles += 2; reg.setInterrupt(false)}, //CLI
+        0xb8 => {cycles += 2; reg.setOverflow(false)} //CLV
+
+
+        //Load A
         0xa9 => {cycles += op::lda(memory, reg, 2, reg.pc); reg.pc += 1;}, //LDA Immediate
         0xa5 => {addr = bus::zp(memory, reg); cycles += op::lda(memory, reg, 3, addr)}, //LDA ZP
-        //LDA ZP,X
+        0xb5 => {addr = bus::zp_x(memory, reg); cycles += op::lda(memory, reg, 4, addr)}, //LDA ZP,X
         0xad => {addr = bus::absolute(memory, reg); cycles += op::lda(memory, reg, 4, addr)}, //LDA Absolute
 
 
+        //Load X
+        0xa2 => {cycles += op::ldx(memory, reg, 2, reg.pc); reg.pc += 1;}, //LDX Immediate
+        0xa6 => {addr = bus::zp(memory, reg); cycles += op::ldx(memory, reg, 3, addr)}, //LDX ZP
+        0xb6 => {addr = bus::zp_y(memory, reg); cycles += op::ldx(memory, reg, 4, addr)}, //LDX ZP,Y
+        0xae => {addr = bus::absolute(memory, reg); cycles += op::ldx(memory, reg, 4, addr)}, //LDX Absolute
+
+
+        //Load Y
+        0xa0 => {cycles += op::ldy(memory, reg, 2, reg.pc); reg.pc += 1;}, //LDY Immediate
+        0xa4 => {addr = bus::zp(memory, reg); cycles += op::ldy(memory, reg, 3, addr)}, //LDY ZP
+        0xb4 => {addr = bus::zp_x(memory, reg); cycles += op::ldy(memory, reg, 4, addr)}, //LDY ZP,Y
+        0xac => {addr = bus::absolute(memory, reg); cycles += op::ldy(memory, reg, 4, addr)}, //LDY Absolute
+
+
+        //Logical Shift Right
         0x4a => {cycles += op::lsr(memory, reg, 2, None); reg.pc += 1;}, //LSR A
         0x46 => {addr = bus::zp(memory, reg); cycles += op::lsr(memory, reg, 5, Some(addr));}, //LSR ZP
-        //LSR ZP,X
+        0x56 => {addr = bus::zp_x(memory, reg); cycles += op::lsr(memory, reg, 6, Some(addr));}, //LSR ZP,X
         0x4e => {addr = bus::absolute(memory, reg); cycles += op::lsr(memory, reg, 6, Some(addr));}, //LSR Absolute
         //LSR Absolute,X
-        
+
+
+        //No Operation
+        0xea => {cycles += 2} //NOP
+
+
+        //Set Flag Instructions
+        0x38 => {cycles += 2; reg.setCarry(true)}, //SEC
+        0xf8 => {cycles += 2; reg.setDecimal(true)}, //SED
+        0x78 => {cycles += 2; reg.setInterrupt(true)}, //SEI
+
 
         other => return Err(format!("Unrecognized opcode {:#04x}! Halting execution...", other)) //whoops! invalid opcode
     }

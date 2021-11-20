@@ -35,6 +35,50 @@ pub fn zp(memspace: &[Segment], reg: &mut CpuStatus) -> u16
     return o_addr;
 }
 
+pub fn zp_x(memspace: &[Segment], reg: &mut CpuStatus) -> u16
+{
+    let o_addr: u8;
+
+    o_addr = read(memspace, reg.pc).wrapping_add(reg.x);
+    reg.pc += 1;
+
+    return o_addr as u16;
+}
+
+pub fn zp_y(memspace: &[Segment], reg: &mut CpuStatus) -> u16
+{
+    let o_addr: u8;
+
+    o_addr = read(memspace, reg.pc).wrapping_add(reg.y);
+    reg.pc += 1;
+
+    return o_addr as u16;
+}
+
+pub fn indirect(memspace: &[Segment], reg: &mut CpuStatus) -> u16
+{
+    let lo_byte: u8;
+    let hi_byte: u8;
+
+    let mut i_addr: u16 = 0;
+    let mut o_addr: u16 = 0;
+
+    lo_byte = read(memspace, reg.pc);
+    reg.pc += 1;
+    hi_byte = read(memspace, reg.pc);
+    reg.pc += 1;
+
+    i_addr += hi_byte as u16;
+    i_addr <<= 8;
+    i_addr += lo_byte as u16;
+
+    o_addr += read(memspace, i_addr) as u16;
+    o_addr <<= 8;
+    o_addr += read(memspace, i_addr + 1) as u16;
+
+    return o_addr;
+}
+
 pub fn read(memspace: &[Segment], addr: u16) -> u8 //bus arbitration for reading bytes
 {
     let mut read_byte: u8 = 0;

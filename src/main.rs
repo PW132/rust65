@@ -80,8 +80,9 @@ fn main() {
                         println!("{}",check.unwrap_err());
                     }
     
-                    cpu::status_report(&reg); },
-
+                    cpu::status_report(&reg); 
+                },
+                
                 "exit" => break, //exit command: close emulator
                 _ => println!("What?")
             }
