@@ -61,6 +61,7 @@ pub fn indirect(memspace: &[Segment], reg: &mut CpuStatus) -> u16
     let hi_byte: u8;
 
     let mut i_addr: u16 = 0;
+    let mut i_addr2: u16 = 0;
     let mut o_addr: u16 = 0;
 
     lo_byte = read(memspace, reg.pc);
@@ -70,11 +71,14 @@ pub fn indirect(memspace: &[Segment], reg: &mut CpuStatus) -> u16
 
     i_addr += hi_byte as u16;
     i_addr <<= 8;
+    i_addr2 = i_addr;
     i_addr += lo_byte as u16;
+    i_addr2 += lo_byte.wrapping_add(1) as u16;
+
 
     o_addr += read(memspace, i_addr) as u16;
     o_addr <<= 8;
-    o_addr += read(memspace, i_addr + 1) as u16;
+    o_addr += read(memspace, i_addr2) as u16;
 
     return o_addr;
 }

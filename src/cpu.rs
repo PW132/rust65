@@ -97,11 +97,20 @@ pub fn execute<'a>(memory: &mut [Segment], reg: &'a mut CpuStatus) -> Result<u8,
         0xb8 => {cycles += 2; reg.setOverflow(false)} //CLV
 
 
+        //Jump
+        0x4c => {addr = bus::absolute(memory, reg); cycles += op::jmp(memory, reg, 3, addr)}, //JMP Absolute
+        0x6c => {addr = bus::indirect(memory, reg); cycles += op::jmp(memory, reg, 5, addr)}, //JMP Indirect
+
+
         //Load A
         0xa9 => {cycles += op::lda(memory, reg, 2, reg.pc); reg.pc += 1;}, //LDA Immediate
         0xa5 => {addr = bus::zp(memory, reg); cycles += op::lda(memory, reg, 3, addr)}, //LDA ZP
         0xb5 => {addr = bus::zp_x(memory, reg); cycles += op::lda(memory, reg, 4, addr)}, //LDA ZP,X
         0xad => {addr = bus::absolute(memory, reg); cycles += op::lda(memory, reg, 4, addr)}, //LDA Absolute
+        //LDA Absolute,X
+        //LDA Absolute,Y
+        //LDA Indirect,X
+        //LDA Indirect,Y
 
 
         //Load X
@@ -114,7 +123,7 @@ pub fn execute<'a>(memory: &mut [Segment], reg: &'a mut CpuStatus) -> Result<u8,
         //Load Y
         0xa0 => {cycles += op::ldy(memory, reg, 2, reg.pc); reg.pc += 1;}, //LDY Immediate
         0xa4 => {addr = bus::zp(memory, reg); cycles += op::ldy(memory, reg, 3, addr)}, //LDY ZP
-        0xb4 => {addr = bus::zp_x(memory, reg); cycles += op::ldy(memory, reg, 4, addr)}, //LDY ZP,Y
+        0xb4 => {addr = bus::zp_x(memory, reg); cycles += op::ldy(memory, reg, 4, addr)}, //LDY ZP,X
         0xac => {addr = bus::absolute(memory, reg); cycles += op::ldy(memory, reg, 4, addr)}, //LDY Absolute
 
 
@@ -134,6 +143,28 @@ pub fn execute<'a>(memory: &mut [Segment], reg: &'a mut CpuStatus) -> Result<u8,
         0x38 => {cycles += 2; reg.setCarry(true)}, //SEC
         0xf8 => {cycles += 2; reg.setDecimal(true)}, //SED
         0x78 => {cycles += 2; reg.setInterrupt(true)}, //SEI
+
+
+        //Store A
+        0x85 => {addr = bus::zp(memory, reg); cycles += op::sta(memory, reg, 3, addr)}, //STA ZP
+        0x95 => {addr = bus::zp_x(memory, reg); cycles += op::sta(memory, reg, 4, addr)}, //STA ZP,X
+        0x8d => {addr = bus::absolute(memory, reg); cycles += op::sta(memory, reg, 4, addr)}, //STA Absolute
+        //STA Absolute,X
+        //STA Absolute,Y
+        //STA Indirect,X
+        //STA Indirect,Y
+
+
+        //Store X
+        0x86 => {addr = bus::zp(memory, reg); cycles += op::stx(memory, reg, 3, addr)}, //STA ZP
+        0x96 => {addr = bus::zp_x(memory, reg); cycles += op::stx(memory, reg, 4, addr)}, //STA ZP,X
+        0x8e => {addr = bus::absolute(memory, reg); cycles += op::stx(memory, reg, 4, addr)}, //STA Absolute
+
+        
+        //Store Y
+        0x84 => {addr = bus::zp(memory, reg); cycles += op::sty(memory, reg, 3, addr)}, //STA ZP
+        0x94 => {addr = bus::zp_x(memory, reg); cycles += op::sty(memory, reg, 4, addr)}, //STA ZP,X
+        0x8c => {addr = bus::absolute(memory, reg); cycles += op::sty(memory, reg, 4, addr)}, //STA Absolute
 
 
         other => return Err(format!("Unrecognized opcode {:#04x}! Halting execution...", other)) //whoops! invalid opcode
