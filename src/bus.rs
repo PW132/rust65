@@ -73,7 +73,7 @@ pub fn indirect(memspace: &[Segment], reg: &mut CpuStatus) -> u16
     i_addr <<= 8;
     i_addr2 = i_addr;
     i_addr += lo_byte as u16;
-    i_addr2 += lo_byte.wrapping_add(1) as u16;
+    i_addr2 += lo_byte.wrapping_add(1) as u16; //We use wrapping_add here to mimic the NMOS 6502 bug where indirect jumps don't work right at page boundaries
 
 
     o_addr += read(memspace, i_addr) as u16;

@@ -28,17 +28,27 @@ fn main() {
     let rom: &mut[u8] = &mut rom_array[..];
 
 
-    let mut dram_array: [u8; 0xdfff] = [0; 0xdfff]; //reserve 56KB of memory address space
+    let mut dram_array: [u8; 0x7fff] = [0; 0x7fff]; //reserve 32KB of memory address space
     let dram: &mut[u8] = &mut dram_array[..];
+
+
+    let mut pia_in_array: [u8; 3] = [0; 3];
+    let mut pia_out_array: [u8; 3] = [0; 3];
+    let pia_in: &mut[u8] = &mut pia_in_array[..];
+    let pia_out: &mut[u8] = &mut pia_out_array[..];
 
 
     let memory: &mut[Segment] = //define memory map
     &mut[
         Segment {data: dram, start_addr: 0, write_enabled: true, read_enabled: true},
+        Segment {data: pia_in, start_addr: 0xd010, write_enabled: false, read_enabled: true},
+        Segment {data: pia_out, start_addr: 0xd010, write_enabled: true, read_enabled: false},
         Segment {data: rom, start_addr: 0xe000, write_enabled: false, read_enabled: true}
     ];
 
+
     let mut reg = CpuStatus::new(1000000); //create and initialize registers and other cpu state
+
 
     let mut cpu_running: bool = false;
     let mut last_cmd: String; //the command line buffer
@@ -71,6 +81,7 @@ fn main() {
             match last_cmd.trim()
             {
                 "run" => cpu_running = true, //run command: start running code
+                "reset" => reg.pc = 0xfffc,
                 "status" => cpu::status_report(&reg), //status command: get status of registers
 
                 "step" => //step command: run a single operation
@@ -82,7 +93,7 @@ fn main() {
     
                     cpu::status_report(&reg); 
                 },
-                
+
                 "exit" => break, //exit command: close emulator
                 _ => println!("What?")
             }

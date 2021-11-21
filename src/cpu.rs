@@ -27,31 +27,30 @@ impl CpuStatus
         if flag { self.sr |= 0b1 } else { self.sr &= !0b1 }
     }
 
-
     pub fn setZero(&mut self, flag: bool)
     {
         if flag { self.sr |= 0b10 } else { self.sr &= !0b10 }
     }
-
 
     pub fn setInterrupt(&mut self, flag: bool)
     {
         if flag { self.sr |= 0b100 } else { self.sr &= !0b100 }
     }
 
-
     pub fn setDecimal(&mut self, flag: bool)
     {
-
         if flag { self.sr |= 0b1000 } else { self.sr &= !0b1000 }
     }
 
+    pub fn setBreak(&mut self, flag: bool)
+    {
+        if flag { self.sr |= 0b10000 } else { self.sr &= !0b10000 }
+    }
 
     pub fn setOverflow(&mut self, flag: bool)
     {
         if flag { self.sr |= 0b1000000 } else { self.sr &= !0b1000000 }
     }
-
 
     pub fn setNegative(&mut self, flag: bool)
     {
