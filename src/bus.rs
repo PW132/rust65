@@ -7,7 +7,8 @@ pub struct Segment<'a>
     pub read_enabled: bool
 }
 
-pub fn absolute(memspace: &[Segment], reg: &mut CpuStatus) -> u16
+
+pub fn absolute(memspace: &[Segment], reg: &mut CpuStatus) -> u16 //Absolute
 {
     let lo_byte: u8;
     let hi_byte: u8;
@@ -18,14 +19,63 @@ pub fn absolute(memspace: &[Segment], reg: &mut CpuStatus) -> u16
     hi_byte = read(memspace, reg.pc);
     reg.pc += 1;
 
-    o_addr += hi_byte as u16;
-    o_addr <<= 8;
-    o_addr += lo_byte as u16;
+    o_addr = ((hi_byte as u16) << 8) + lo_byte as u16;
 
     return o_addr;
 }
 
-pub fn zp(memspace: &[Segment], reg: &mut CpuStatus) -> u16
+
+pub fn absolute_x(memspace: &[Segment], reg: &mut CpuStatus) -> u16 //Absolute + X
+{
+    let lo_byte: u8;
+    let hi_byte: u8;
+    let mut addr: u16 = 0;
+    let o_addr: u16;
+
+    lo_byte = read(memspace, reg.pc);
+    reg.pc += 1;
+    hi_byte = read(memspace, reg.pc);
+    reg.pc += 1;
+
+    addr = ((hi_byte as u16) << 8) + lo_byte as u16;
+
+    o_addr = addr + reg.x as u16;
+
+    if addr & 0x100 != o_addr & 0x100
+    {
+        reg.cycles_used += 1;
+    }
+
+    return o_addr;
+}
+
+
+pub fn absolute_y(memspace: &[Segment], reg: &mut CpuStatus) -> u16 //Absolute + X
+{
+    let lo_byte: u8;
+    let hi_byte: u8;
+    let mut addr: u16 = 0;
+    let o_addr: u16;
+
+    lo_byte = read(memspace, reg.pc);
+    reg.pc += 1;
+    hi_byte = read(memspace, reg.pc);
+    reg.pc += 1;
+
+    addr = ((hi_byte as u16) << 8) + lo_byte as u16;
+
+    o_addr = addr + reg.y as u16;
+
+    if addr & 0x100 != o_addr & 0x100
+    {
+        reg.cycles_used += 1;
+    }
+
+    return o_addr;
+}
+
+
+pub fn zp(memspace: &[Segment], reg: &mut CpuStatus) -> u16 //Zero Page
 {
     let o_addr: u16;
 
@@ -35,7 +85,8 @@ pub fn zp(memspace: &[Segment], reg: &mut CpuStatus) -> u16
     return o_addr;
 }
 
-pub fn zp_x(memspace: &[Segment], reg: &mut CpuStatus) -> u16
+
+pub fn zp_x(memspace: &[Segment], reg: &mut CpuStatus) -> u16 //Zero Page + X
 {
     let o_addr: u8;
 
@@ -45,7 +96,8 @@ pub fn zp_x(memspace: &[Segment], reg: &mut CpuStatus) -> u16
     return o_addr as u16;
 }
 
-pub fn zp_y(memspace: &[Segment], reg: &mut CpuStatus) -> u16
+
+pub fn zp_y(memspace: &[Segment], reg: &mut CpuStatus) -> u16 //Zero Page + Y
 {
     let o_addr: u8;
 
@@ -55,7 +107,8 @@ pub fn zp_y(memspace: &[Segment], reg: &mut CpuStatus) -> u16
     return o_addr as u16;
 }
 
-pub fn indirect(memspace: &[Segment], reg: &mut CpuStatus) -> u16
+
+pub fn indirect(memspace: &[Segment], reg: &mut CpuStatus) -> u16 //indirect addressing, only used by JMP. Kinda jank to implement.
 {
     let lo_byte: u8;
     let hi_byte: u8;
@@ -82,6 +135,7 @@ pub fn indirect(memspace: &[Segment], reg: &mut CpuStatus) -> u16
 
     return o_addr;
 }
+
 
 pub fn read(memspace: &[Segment], addr: u16) -> u8 //bus arbitration for reading bytes
 {

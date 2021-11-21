@@ -3,12 +3,14 @@ use crate::cpu::CpuStatus;
 use crate::bus;
 use crate::bus::Segment;
 
+
 pub fn jmp(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: u16) -> u8
 {
     reg.pc = i_addr;
 
     return cycles;
 }
+
 
 pub fn lda(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: u16) -> u8
 {
@@ -23,6 +25,7 @@ pub fn lda(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: u16)
     return cycles
 }
 
+
 pub fn ldx(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: u16) -> u8
 {
     let byte: u8;
@@ -35,6 +38,7 @@ pub fn ldx(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: u16)
 
     return cycles
 }
+
 
 pub fn ldy(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: u16) -> u8
 {
@@ -49,12 +53,14 @@ pub fn ldy(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: u16)
     return cycles
 }
 
+
 pub fn sta(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: u16) -> u8
 {
     bus::write(memory, i_addr, reg.a);
 
     return cycles
 }
+
 
 pub fn stx(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: u16) -> u8
 {
@@ -63,12 +69,14 @@ pub fn stx(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: u16)
     return cycles
 }
 
+
 pub fn sty(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: u16) -> u8
 {
     bus::write(memory, i_addr, reg.y);
 
     return cycles
 }
+
 
 pub fn lsr(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: Option<u16>) -> u8
 {
