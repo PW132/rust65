@@ -60,7 +60,7 @@ fn main() {
     
     loop
     {
-        if cpu_running //if true, let's run code
+        if cpu_running //if true, let's run 6502 code
         {
             let check: Result<u8, String> = cpu::execute(memory, &mut reg); //execute an instruction, check for errors
 
@@ -68,7 +68,7 @@ fn main() {
             {
                 println!("{}",check.unwrap_err());
                 cpu::status_report(&reg);
-                cpu_running = false;
+                cpu_running = false; //stop running if something goes wrong
 
                 print!(">");
                 std::io::stdout().flush().unwrap();

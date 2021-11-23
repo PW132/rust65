@@ -98,43 +98,43 @@ pub fn execute<'a>(memory: &mut [Segment], reg: &'a mut CpuStatus) -> Result<u8,
 
 
         //Jump
-        0x4c => {addr = bus::absolute(memory, reg); reg.cycles_used += op::jmp(memory, reg, 3, addr)}, //JMP Absolute
-        0x6c => {addr = bus::indirect(memory, reg); reg.cycles_used += op::jmp(memory, reg, 5, addr)}, //JMP Indirect
+        0x4c => {addr = bus::absolute(memory, reg); op::jmp(memory, reg, 3, addr)}, //JMP Absolute
+        0x6c => {addr = bus::indirect(memory, reg); op::jmp(memory, reg, 5, addr)}, //JMP Indirect
 
 
         //Load A
-        0xa9 => {reg.cycles_used += op::lda(memory, reg, 2, reg.pc); reg.pc += 1;}, //LDA Immediate
-        0xa5 => {addr = bus::zp(memory, reg); reg.cycles_used += op::lda(memory, reg, 3, addr)}, //LDA ZP
-        0xb5 => {addr = bus::zp_x(memory, reg); reg.cycles_used += op::lda(memory, reg, 4, addr)}, //LDA ZP,X
-        0xad => {addr = bus::absolute(memory, reg); reg.cycles_used += op::lda(memory, reg, 4, addr)}, //LDA Absolute
-        0xbd => {addr = bus::absolute_x(memory, reg); reg.cycles_used += op::lda(memory, reg, 4, addr)}, //LDA Absolute,X
-        0xb9 => {addr = bus::absolute_y(memory, reg); reg.cycles_used += op::lda(memory, reg, 4, addr)}, //LDA Absolute,Y
+        0xa9 => {op::lda(memory, reg, 2, reg.pc); reg.pc += 1;}, //LDA Immediate
+        0xa5 => {addr = bus::zp(memory, reg); op::lda(memory, reg, 3, addr)}, //LDA ZP
+        0xb5 => {addr = bus::zp_x(memory, reg); op::lda(memory, reg, 4, addr)}, //LDA ZP,X
+        0xad => {addr = bus::absolute(memory, reg); op::lda(memory, reg, 4, addr)}, //LDA Absolute
+        0xbd => {addr = bus::absolute_x(memory, reg); op::lda(memory, reg, 4, addr)}, //LDA Absolute,X
+        0xb9 => {addr = bus::absolute_y(memory, reg); op::lda(memory, reg, 4, addr)}, //LDA Absolute,Y
         //LDA Indirect,X
         //LDA Indirect,Y
 
 
         //Load X
-        0xa2 => {reg.cycles_used += op::ldx(memory, reg, 2, reg.pc); reg.pc += 1;}, //LDX Immediate
-        0xa6 => {addr = bus::zp(memory, reg); reg.cycles_used += op::ldx(memory, reg, 3, addr)}, //LDX ZP
-        0xb6 => {addr = bus::zp_y(memory, reg); reg.cycles_used += op::ldx(memory, reg, 4, addr)}, //LDX ZP,Y
-        0xae => {addr = bus::absolute(memory, reg); reg.cycles_used += op::ldx(memory, reg, 4, addr)}, //LDX Absolute
-        0xbe => {addr = bus::absolute_y(memory, reg); reg.cycles_used += op::ldx(memory, reg, 4, addr)}, //LDX Absolute,Y
+        0xa2 => {op::ldx(memory, reg, 2, reg.pc); reg.pc += 1;}, //LDX Immediate
+        0xa6 => {addr = bus::zp(memory, reg); op::ldx(memory, reg, 3, addr)}, //LDX ZP
+        0xb6 => {addr = bus::zp_y(memory, reg); op::ldx(memory, reg, 4, addr)}, //LDX ZP,Y
+        0xae => {addr = bus::absolute(memory, reg); op::ldx(memory, reg, 4, addr)}, //LDX Absolute
+        0xbe => {addr = bus::absolute_y(memory, reg); op::ldx(memory, reg, 4, addr)}, //LDX Absolute,Y
 
 
         //Load Y
-        0xa0 => {reg.cycles_used += op::ldy(memory, reg, 2, reg.pc); reg.pc += 1;}, //LDY Immediate
-        0xa4 => {addr = bus::zp(memory, reg); reg.cycles_used += op::ldy(memory, reg, 3, addr)}, //LDY ZP
-        0xb4 => {addr = bus::zp_x(memory, reg); reg.cycles_used += op::ldy(memory, reg, 4, addr)}, //LDY ZP,X
-        0xac => {addr = bus::absolute(memory, reg); reg.cycles_used += op::ldy(memory, reg, 4, addr)}, //LDY Absolute
-        0xbc => {addr = bus::absolute_x(memory, reg); reg.cycles_used += op::ldy(memory, reg, 4, addr)}, //LDY Absolute,X
+        0xa0 => {op::ldy(memory, reg, 2, reg.pc); reg.pc += 1;}, //LDY Immediate
+        0xa4 => {addr = bus::zp(memory, reg); op::ldy(memory, reg, 3, addr)}, //LDY ZP
+        0xb4 => {addr = bus::zp_x(memory, reg); op::ldy(memory, reg, 4, addr)}, //LDY ZP,X
+        0xac => {addr = bus::absolute(memory, reg); op::ldy(memory, reg, 4, addr)}, //LDY Absolute
+        0xbc => {addr = bus::absolute_x(memory, reg); op::ldy(memory, reg, 4, addr)}, //LDY Absolute,X
 
 
         //Logical Shift Right
-        0x4a => {reg.cycles_used += op::lsr(memory, reg, 2, None); reg.pc += 1;}, //LSR A
-        0x46 => {addr = bus::zp(memory, reg); reg.cycles_used += op::lsr(memory, reg, 5, Some(addr))}, //LSR ZP
-        0x56 => {addr = bus::zp_x(memory, reg); reg.cycles_used += op::lsr(memory, reg, 6, Some(addr))}, //LSR ZP,X
-        0x4e => {addr = bus::absolute(memory, reg); reg.cycles_used += op::lsr(memory, reg, 6, Some(addr))}, //LSR Absolute
-        0x5e => {addr = bus::absolute_x(memory, reg); reg.cycles_used += op::lsr(memory, reg, 7, Some(addr))}, //LSR Absolute,X
+        0x4a => {op::lsr(memory, reg, 2, None); reg.pc += 1;}, //LSR A
+        0x46 => {addr = bus::zp(memory, reg); op::lsr(memory, reg, 5, Some(addr))}, //LSR ZP
+        0x56 => {addr = bus::zp_x(memory, reg); op::lsr(memory, reg, 6, Some(addr))}, //LSR ZP,X
+        0x4e => {addr = bus::absolute(memory, reg); op::lsr(memory, reg, 6, Some(addr))}, //LSR Absolute
+        0x5e => {addr = bus::absolute_x(memory, reg); op::lsr(memory, reg, 7, Some(addr))}, //LSR Absolute,X
 
 
         //No Operation
@@ -148,25 +148,25 @@ pub fn execute<'a>(memory: &mut [Segment], reg: &'a mut CpuStatus) -> Result<u8,
 
 
         //Store A
-        0x85 => {addr = bus::zp(memory, reg); reg.cycles_used += op::sta(memory, reg, 3, addr)}, //STA ZP
-        0x95 => {addr = bus::zp_x(memory, reg); reg.cycles_used += op::sta(memory, reg, 4, addr)}, //STA ZP,X
-        0x8d => {addr = bus::absolute(memory, reg); reg.cycles_used += op::sta(memory, reg, 4, addr)}, //STA Absolute
-        0x9d => {addr = bus::absolute_x(memory, reg); reg.cycles_used += op::sta(memory, reg, 5, addr)}, //STA Absolute,X
-        0x99 => {addr = bus::absolute_y(memory, reg); reg.cycles_used += op::sta(memory, reg, 5, addr)}, //STA Absolute,Y
+        0x85 => {addr = bus::zp(memory, reg); op::sta(memory, reg, 3, addr)}, //STA ZP
+        0x95 => {addr = bus::zp_x(memory, reg); op::sta(memory, reg, 4, addr)}, //STA ZP,X
+        0x8d => {addr = bus::absolute(memory, reg); op::sta(memory, reg, 4, addr)}, //STA Absolute
+        0x9d => {addr = bus::absolute_x(memory, reg); op::sta(memory, reg, 5, addr)}, //STA Absolute,X
+        0x99 => {addr = bus::absolute_y(memory, reg); op::sta(memory, reg, 5, addr)}, //STA Absolute,Y
         //STA Indirect,X
         //STA Indirect,Y
 
 
         //Store X
-        0x86 => {addr = bus::zp(memory, reg); reg.cycles_used += op::stx(memory, reg, 3, addr)}, //STA ZP
-        0x96 => {addr = bus::zp_x(memory, reg); reg.cycles_used += op::stx(memory, reg, 4, addr)}, //STA ZP,X
-        0x8e => {addr = bus::absolute(memory, reg); reg.cycles_used += op::stx(memory, reg, 4, addr)}, //STA Absolute
+        0x86 => {addr = bus::zp(memory, reg); op::stx(memory, reg, 3, addr)}, //STA ZP
+        0x96 => {addr = bus::zp_x(memory, reg); op::stx(memory, reg, 4, addr)}, //STA ZP,X
+        0x8e => {addr = bus::absolute(memory, reg); op::stx(memory, reg, 4, addr)}, //STA Absolute
 
         
         //Store Y
-        0x84 => {addr = bus::zp(memory, reg); reg.cycles_used += op::sty(memory, reg, 3, addr)}, //STA ZP
-        0x94 => {addr = bus::zp_x(memory, reg); reg.cycles_used += op::sty(memory, reg, 4, addr)}, //STA ZP,X
-        0x8c => {addr = bus::absolute(memory, reg); reg.cycles_used += op::sty(memory, reg, 4, addr)}, //STA Absolute
+        0x84 => {addr = bus::zp(memory, reg); op::sty(memory, reg, 3, addr)}, //STA ZP
+        0x94 => {addr = bus::zp_x(memory, reg); op::sty(memory, reg, 4, addr)}, //STA ZP,X
+        0x8c => {addr = bus::absolute(memory, reg); op::sty(memory, reg, 4, addr)}, //STA Absolute
 
 
         other => return Err(format!("Unrecognized opcode {:#04x}! Halting execution...", other)) //whoops! invalid opcode

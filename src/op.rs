@@ -4,15 +4,15 @@ use crate::bus;
 use crate::bus::Segment;
 
 
-pub fn jmp(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: u16) -> u8
+pub fn jmp(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: u16)
 {
     reg.pc = i_addr;
 
-    return cycles;
+    reg.cycles_used += cycles
 }
 
 
-pub fn lda(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: u16) -> u8
+pub fn lda(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: u16)
 {
     let byte: u8;
     byte = bus::read(memory, i_addr);
@@ -22,11 +22,11 @@ pub fn lda(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: u16)
     reg.setNegative(byte > 0x7f);
     reg.setZero(byte == 0);
 
-    return cycles
+    reg.cycles_used += cycles
 }
 
 
-pub fn ldx(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: u16) -> u8
+pub fn ldx(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: u16)
 {
     let byte: u8;
     byte = bus::read(memory, i_addr);
@@ -36,11 +36,11 @@ pub fn ldx(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: u16)
     reg.setNegative(byte > 0x7f);
     reg.setZero(byte == 0);
 
-    return cycles
+    reg.cycles_used += cycles
 }
 
 
-pub fn ldy(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: u16) -> u8
+pub fn ldy(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: u16)
 {
     let byte: u8;
     byte = bus::read(memory, i_addr);
@@ -50,35 +50,35 @@ pub fn ldy(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: u16)
     reg.setNegative(byte > 0x7f);
     reg.setZero(byte == 0);
 
-    return cycles
+    reg.cycles_used += cycles
 }
 
 
-pub fn sta(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: u16) -> u8
+pub fn sta(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: u16)
 {
     bus::write(memory, i_addr, reg.a);
 
-    return cycles
+    reg.cycles_used += cycles
 }
 
 
-pub fn stx(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: u16) -> u8
+pub fn stx(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: u16)
 {
     bus::write(memory, i_addr, reg.x);
 
-    return cycles
+    reg.cycles_used += cycles
 }
 
 
-pub fn sty(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: u16) -> u8
+pub fn sty(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: u16)
 {
     bus::write(memory, i_addr, reg.y);
 
-    return cycles
+    reg.cycles_used += cycles
 }
 
 
-pub fn lsr(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: Option<u16>) -> u8
+pub fn lsr(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: Option<u16>)
 {
     let mut byte: u8;
 
@@ -98,5 +98,5 @@ pub fn lsr(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: Opti
         None => reg.a = byte
     };
 
-    return cycles;
+    reg.cycles_used += cycles;
 }
