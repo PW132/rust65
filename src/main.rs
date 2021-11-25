@@ -48,7 +48,7 @@ fn main() {
 
 
     let mut reg = CpuStatus::new(1000000); //create and initialize registers and other cpu state
-
+    reg.debug_text = true;
 
     let mut cpu_running: bool = false;
     let mut last_cmd: String; //the command line buffer
@@ -58,7 +58,7 @@ fn main() {
     stdout().flush().unwrap();
 
     
-    loop
+    loop                //Main execution loop
     {
         if cpu_running //if true, let's run 6502 code
         {
@@ -68,15 +68,15 @@ fn main() {
             {
                 println!("{}",check.unwrap_err());
                 cpu::status_report(&reg);
-                cpu_running = false; //stop running if something goes wrong
+                cpu_running = false;                                        //stop running if something goes wrong
 
                 print!(">");
                 std::io::stdout().flush().unwrap();
             }
         }
-        else //CPU is paused, drop into interactive monitor
+        else        //CPU is paused, drop into interactive monitor
         {   
-            last_cmd = read!("{}\n"); //get text input and store it whole
+            last_cmd = read!("{}\n");       //get text input and store it whole
             
             match last_cmd.trim()
             {
@@ -84,7 +84,7 @@ fn main() {
                 "reset" => reg.pc = 0xfffc,
                 "status" => cpu::status_report(&reg), //status command: get status of registers
 
-                "step" => //step command: run a single operation
+                "step" =>                   //step command: run a single operation
                 {   let check: Result<u8, String> = cpu::execute(memory, &mut reg);
                     if check.is_err()
                     {
@@ -94,7 +94,7 @@ fn main() {
                     cpu::status_report(&reg); 
                 },
 
-                "exit" => break, //exit command: close emulator
+                "exit" => break,            //exit command: close emulator
                 _ => println!("What?")
             }
             print!(">");

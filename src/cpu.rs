@@ -15,6 +15,7 @@ pub struct CpuStatus //contains the registers of the CPU, the clock speed, and o
     pub clock_speed: u32
 }
 
+
 impl CpuStatus
 {
     pub fn new(speed: u32) -> CpuStatus
@@ -23,41 +24,83 @@ impl CpuStatus
     }
 
 
-    pub fn setCarry(&mut self, flag: bool)
+    pub fn carry_flag(&mut self) -> bool
+    {
+        return 1 == (self.sr & !0b1)
+    }
+
+    pub fn set_carry(&mut self, flag: bool)
     {
         if flag { self.sr |= 0b1 } else { self.sr &= !0b1 }
     }
 
-    pub fn setZero(&mut self, flag: bool)
+
+    pub fn zero_flag(&mut self) -> bool
+    {
+        return 1 == (self.sr & !0b10)
+    }
+
+    pub fn set_zero(&mut self, flag: bool)
     {
         if flag { self.sr |= 0b10 } else { self.sr &= !0b10 }
     }
 
-    pub fn setInterrupt(&mut self, flag: bool)
+
+    pub fn interrupt_flag(&mut self) -> bool
+    {
+        return 1 == (self.sr & !0b100)
+    }
+
+    pub fn set_interrupt(&mut self, flag: bool)
     {
         if flag { self.sr |= 0b100 } else { self.sr &= !0b100 }
     }
 
-    pub fn setDecimal(&mut self, flag: bool)
+
+    pub fn decimal_flag(&mut self) -> bool
+    {
+        return 1 == (self.sr & !0b1000)
+    }
+
+    pub fn set_decimal(&mut self, flag: bool)
     {
         if flag { self.sr |= 0b1000 } else { self.sr &= !0b1000 }
     }
 
-    pub fn setBreak(&mut self, flag: bool)
+
+    pub fn break_flag(&mut self) -> bool
+    {
+        return 1 == (self.sr & !0b1)
+    }
+
+    pub fn set_break(&mut self, flag: bool)
     {
         if flag { self.sr |= 0b10000 } else { self.sr &= !0b10000 }
     }
 
-    pub fn setOverflow(&mut self, flag: bool)
+
+    pub fn overflow_flag(&mut self) -> bool
+    {
+        return 1 == (self.sr & !0b1000000)
+    }
+
+    pub fn set_overflow(&mut self, flag: bool)
     {
         if flag { self.sr |= 0b1000000 } else { self.sr &= !0b1000000 }
     }
 
-    pub fn setNegative(&mut self, flag: bool)
+
+    pub fn negative_flag(&mut self) -> bool
+    {
+        return 1 == (self.sr & !0b10000000)
+    }
+
+    pub fn set_negative(&mut self, flag: bool)
     {
         if flag { self.sr |= 0b10000000 } else { self.sr &= !0b10000000 }
     }
 }
+
 
 pub fn status_report(reg: &CpuStatus)
 {
@@ -69,32 +112,67 @@ pub fn status_report(reg: &CpuStatus)
 pub fn execute<'a>(memory: &mut [Segment], reg: &'a mut CpuStatus) -> Result<u8, String> //runs a single CPU instruction, returns errors if there are any
 {
     reg.cycles_used = 0;
-    let mut addr: u16 = 0;
+    let addr: u16;
+    let flag: bool;
 
-    if reg.pc == 0xfffc //do we need to reset the CPU?
+    if reg.pc == 0xfffc                                             //do we need to reset the CPU?
     {
         let lo_byte : u8 = bus::read(&memory,0xfffc); //retrieve reset vector from ROM
         let hi_byte : u8 = bus::read(&memory,0xfffd);
 
-        reg.pc = lo_byte as u16 + ((hi_byte as u16) << 8); //set new program counter at reset routine
+        reg.pc = lo_byte as u16 + ((hi_byte as u16) << 8);           //set new program counter at reset routine
         
         reg.cycles_used += 7;
 
         if reg.debug_text { println!("Starting program execution at {:#06x}", reg.pc) }
     }
 
-    let opcode: u8 = bus::read(&memory, reg.pc); //get the current opcode
+    let opcode: u8 = bus::read(&memory, reg.pc);        //get the current opcode
     reg.last_op = opcode;
 
     reg.pc += 1; 
 
-    match opcode //which instruction is it?
+    match opcode            //which instruction is it?
     {
+        //Branch Instructions
+        0x10 => {flag = !reg.negative_flag(); op::branch(memory, reg, flag)}, //BPL Branch on PLus
+        0x30 => {flag = reg.negative_flag(); op::branch(memory, reg, flag)}, //BMI Branch on MInus
+        0x50 => {flag = !reg.overflow_flag(); op::branch(memory, reg, flag)}, //BVC Branch on oVerflow Clear
+        0x70 => {flag = reg.overflow_flag(); op::branch(memory, reg, flag)}, //BVS Branch on oVerflow Set
+        0x90 => {flag = !reg.carry_flag(); op::branch(memory, reg, flag)}, //BCC Branch on Carry Clear
+        0xb0 => {flag = reg.carry_flag(); op::branch(memory, reg, flag)}, //BCS Branch on Carry Set
+        0xd0 => {flag = !reg.zero_flag(); op::branch(memory, reg, flag)}, //BNE Branch on Not Equal
+        0xf0 => {flag = reg.zero_flag(); op::branch(memory, reg, flag)}, //BEQ Branch on EQual
+
+
         //Clear Flag Instructions
-        0x18 => {reg.cycles_used += 2; reg.setCarry(false)}, //CLC
-        0xd8 => {reg.cycles_used += 2; reg.setDecimal(false)}, //CLD
-        0x58 => {reg.cycles_used += 2; reg.setInterrupt(false)}, //CLI
-        0xb8 => {reg.cycles_used += 2; reg.setOverflow(false)} //CLV
+        0x18 => {reg.cycles_used += 2; reg.set_carry(false)}, //CLC
+        0xd8 => {reg.cycles_used += 2; reg.set_decimal(false)}, //CLD
+        0x58 => {reg.cycles_used += 2; reg.set_interrupt(false)}, //CLI
+        0xb8 => {reg.cycles_used += 2; reg.set_overflow(false)}, //CLV
+
+
+        //Compare with Accumulator
+        0xc9 => {op::cmp(memory, reg, 2, reg.pc); reg.pc += 1}, //CMP Immediate
+        0xc5 => {addr = bus::zp(memory, reg); op::cmp(memory, reg, 3, addr);}, //CMP ZP
+        0xd5 => {addr = bus::zp_x(memory, reg); op::cmp(memory, reg, 4, addr);}, //CMP ZP,X
+        0xcd => {addr = bus::absolute(memory, reg); op::cmp(memory, reg, 4, addr)}, //CMP Absolute
+        0xdd => {addr = bus::absolute_x(memory, reg); op::cmp(memory, reg, 4, addr)}, //CMP Absolute,X
+        0xd9 => {addr = bus::absolute_y(memory, reg); op::cmp(memory, reg, 4, addr)}, //CMP Absolute,Y
+        //CMP Indirect,X
+        //CMP Indirect,Y
+
+
+        //Compare with X
+        0xe0 => {op::cpx(memory, reg, 2, reg.pc); reg.pc += 1}, //CPX Immediate
+        0xe4 => {addr = bus::zp(memory, reg); op::cpx(memory, reg, 3, addr);}, //CPX ZP
+        0xec => {addr = bus::absolute(memory, reg); op::cpx(memory, reg, 4, addr);}, //CPX Absolute
+
+
+        //Compare with Y
+        0xc0 => {op::cpy(memory, reg, 2, reg.pc); reg.pc += 1}, //CPY Immediate
+        0xc4 => {addr = bus::zp(memory, reg); op::cpy(memory, reg, 3, addr);}, //CPY ZP
+        0xcc => {addr = bus::absolute(memory, reg); op::cpy(memory, reg, 4, addr);}, //CPY Absolute
 
 
         //Jump
@@ -142,9 +220,9 @@ pub fn execute<'a>(memory: &mut [Segment], reg: &'a mut CpuStatus) -> Result<u8,
 
 
         //Set Flag Instructions
-        0x38 => {reg.cycles_used += 2; reg.setCarry(true)}, //SEC
-        0xf8 => {reg.cycles_used += 2; reg.setDecimal(true)}, //SED
-        0x78 => {reg.cycles_used += 2; reg.setInterrupt(true)}, //SEI
+        0x38 => {reg.cycles_used += 2; reg.set_carry(true)}, //SEC
+        0xf8 => {reg.cycles_used += 2; reg.set_decimal(true)}, //SED
+        0x78 => {reg.cycles_used += 2; reg.set_interrupt(true)}, //SEI
 
 
         //Store A

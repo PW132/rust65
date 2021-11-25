@@ -4,11 +4,85 @@ use crate::bus;
 use crate::bus::Segment;
 
 
+pub fn branch(memory: &mut [Segment], reg: &mut CpuStatus, flag: bool) //basis for all branch instructions
+{
+    reg.cycles_used += 2; //use two cycles no matter what
+
+    if flag               //if the flag we tested is true and we should branch:
+    {
+        reg.cycles_used += 1; //use another cycle
+
+        let old_pc: u16 = reg.pc;                                //store the old program counter to compare against later
+        let offset: u8 = bus::read(memory, reg.pc); //read the next byte to get the offset
+
+        if offset < 127                                          //if the byte is positive, move PC forward that many bytes
+        {
+            reg.pc += offset as u16;
+        }
+        else            //if the byte is negative, invert all the bits of the offset to convert it to positive again and then subtract from the PC
+        {
+            reg.pc -= (offset ^ 0) as u16;
+        }
+
+        if old_pc & 0x100 != reg.pc & 0x100                     //use another cycle if we crossed a page boundary
+        {
+            reg.cycles_used += 1;
+        }
+
+        if reg.debug_text { println!("Branching from address {:#06x} to {:#06x}...", old_pc, reg.pc) }
+    }
+    else               //if the flag is false then just increment the program counter and do nothing else
+    {
+        reg.pc += 1;
+
+        if reg.debug_text { println!("Branch condition evaluated but not taken.") }
+    }
+}
+
+
+pub fn cmp(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: u16)
+{
+    let byte: u8 = bus::read(memory, i_addr);
+
+    reg.set_carry(reg.a >= byte);
+    reg.set_zero(reg.a == byte);
+    reg.set_negative(reg.a.wrapping_sub(byte) >= 0x80);
+
+    reg.cycles_used += cycles
+}
+
+
+pub fn cpx(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: u16)
+{
+    let byte: u8 = bus::read(memory, i_addr);
+
+    reg.set_carry(reg.x >= byte);
+    reg.set_zero(reg.x == byte);
+    reg.set_negative(reg.x.wrapping_sub(byte) >= 0x80);
+
+    reg.cycles_used += cycles
+}
+
+
+pub fn cpy(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: u16)
+{
+    let byte: u8 = bus::read(memory, i_addr);
+
+    reg.set_carry(reg.y >= byte);
+    reg.set_zero(reg.y == byte);
+    reg.set_negative(reg.y.wrapping_sub(byte) >= 0x80);
+
+    reg.cycles_used += cycles
+}
+
+
 pub fn jmp(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: u16)
 {
     reg.pc = i_addr;
 
-    reg.cycles_used += cycles
+    reg.cycles_used += cycles;
+
+    if reg.debug_text {println!("Jumping to new address {:#06x}...", reg.pc)}
 }
 
 
@@ -19,8 +93,8 @@ pub fn lda(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: u16)
 
     reg.a = byte;
 
-    reg.setNegative(byte > 0x7f);
-    reg.setZero(byte == 0);
+    reg.set_negative(byte > 0x7f);
+    reg.set_zero(byte == 0);
 
     reg.cycles_used += cycles
 }
@@ -33,8 +107,8 @@ pub fn ldx(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: u16)
 
     reg.x = byte;
 
-    reg.setNegative(byte > 0x7f);
-    reg.setZero(byte == 0);
+    reg.set_negative(byte > 0x7f);
+    reg.set_zero(byte == 0);
 
     reg.cycles_used += cycles
 }
@@ -47,8 +121,8 @@ pub fn ldy(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: u16)
 
     reg.y = byte;
 
-    reg.setNegative(byte > 0x7f);
-    reg.setZero(byte == 0);
+    reg.set_negative(byte > 0x7f);
+    reg.set_zero(byte == 0);
 
     reg.cycles_used += cycles
 }
@@ -87,11 +161,11 @@ pub fn lsr(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: Opti
         None => byte = reg.a
     };
 
-    reg.setCarry(0b1 & byte != 0);
+    reg.set_carry(0b1 & byte != 0);
 
     byte >>= 1;
-    reg.setNegative(byte > 0x7f);
-    reg.setZero(byte == 0);
+    reg.set_negative(byte > 0x7f);
+    reg.set_zero(byte == 0);
 
     match i_addr {
         Some(v) => bus::write(memory, v, byte),
