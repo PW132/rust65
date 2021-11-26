@@ -175,6 +175,39 @@ pub fn execute<'a>(memory: &mut [Segment], reg: &'a mut CpuStatus) -> Result<u8,
         0xcc => {addr = bus::absolute(memory, reg); op::cpy(memory, reg, 4, addr);}, //CPY Absolute
 
 
+        //Decrement Memory
+        0xc6 => {addr = bus::zp(memory, reg); op::dec(memory, reg, 5, addr)}, //DEC ZP
+        0xd6 => {addr = bus::zp_x(memory, reg); op::dec(memory, reg, 6, addr)}, //DEC ZP,X
+        0xce => {addr = bus::absolute(memory, reg); op::dec(memory, reg, 6, addr)}, //DEC Absolute
+        0xde => {addr = bus::absolute_x(memory, reg); op::dec(memory, reg, 7, addr)}, //DEC Absolute,X
+
+
+        //Decrement X
+        0xca => {reg.x = reg.x.wrapping_sub(1); reg.set_zero(reg.x == 0); reg.set_negative(reg.x > 0x7f); reg.cycles_used += 2;}, //DEX
+
+
+        //Decrement Y
+        0x88 => {reg.y = reg.y.wrapping_sub(1); reg.set_zero(reg.y == 0); reg.set_negative(reg.y > 0x7f);  reg.cycles_used += 2;}, //DEY
+
+
+        //Exclusive OR
+
+
+        //Increment Memory
+        0xe6 => {addr = bus::zp(memory, reg); op::inc(memory, reg, 5, addr)}, //INC ZP
+        0xf6 => {addr = bus::zp_x(memory, reg); op::inc(memory, reg, 6, addr)}, //INC ZP,X
+        0xee => {addr = bus::absolute(memory, reg); op::inc(memory, reg, 6, addr)}, //INC Absolute
+        0xfe => {addr = bus::absolute_x(memory, reg); op::inc(memory, reg, 7, addr)}, //INC Absolute,X
+
+
+        //Increment X
+        0xe8 => {reg.x = reg.x.wrapping_add(1); reg.set_zero(reg.x == 0); reg.set_negative(reg.x > 0x7f);  reg.cycles_used += 2;}, //INX
+
+
+        //Increment Y
+        0xc8 => {reg.x = reg.x.wrapping_add(1); reg.set_zero(reg.y == 0); reg.set_negative(reg.y > 0x7f);  reg.cycles_used += 2;}, //INY
+
+
         //Jump
         0x4c => {addr = bus::absolute(memory, reg); op::jmp(memory, reg, 3, addr)}, //JMP Absolute
         0x6c => {addr = bus::indirect(memory, reg); op::jmp(memory, reg, 5, addr)}, //JMP Indirect
