@@ -50,7 +50,7 @@ pub fn absolute_x(memspace: &[Segment], reg: &mut CpuStatus) -> u16 //Absolute +
 }
 
 
-pub fn absolute_y(memspace: &[Segment], reg: &mut CpuStatus) -> u16 //Absolute + X
+pub fn absolute_y(memspace: &[Segment], reg: &mut CpuStatus) -> u16 //Absolute + Y
 {
     let lo_byte: u8;
     let hi_byte: u8;

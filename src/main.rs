@@ -10,7 +10,7 @@ use crate::cpu::CpuStatus;
 use std::io::{Read, Error, ErrorKind, Write, stdout};
 use std::fs::File;
 use std::path::Path;
-use std::panic;
+use std::{panic, time, thread};
 use text_io::{try_scan, read};
 
 fn main() {
@@ -24,7 +24,7 @@ fn main() {
         Ok(file) => file
     };
     let mut rom_array: [u8; 0x1fff] = [0; 0x1fff];
-    rom_file.read(&mut rom_array);
+    let _s = rom_file.read(&mut rom_array);
     let rom: &mut[u8] = &mut rom_array[..];
 
 
@@ -48,7 +48,7 @@ fn main() {
 
 
     let mut reg = CpuStatus::new(1000000); //create and initialize registers and other cpu state
-    reg.debug_text = true;
+    //reg.debug_text = true;
 
     let mut cpu_running: bool = false;
     let mut last_cmd: String; //the command line buffer
@@ -73,6 +73,17 @@ fn main() {
                 print!(">");
                 std::io::stdout().flush().unwrap();
             }
+            else 
+            {
+                let cycles_taken: u8 = check.unwrap();
+                if reg.debug_text {println!("Instruction used {} cycles...", cycles_taken)};
+
+                let wait_time = time::Duration::from_millis(cycles_taken as u64 * (1000/reg.clock_speed as u64));
+                let now = time::Instant::now();
+
+                thread::sleep(wait_time);
+                assert!(now.elapsed() >= wait_time);
+            }
         }
         else        //CPU is paused, drop into interactive monitor
         {   
@@ -80,6 +91,7 @@ fn main() {
             
             match last_cmd.trim()
             {
+                "verbose" => reg.debug_text = !reg.debug_text,
                 "run" => cpu_running = true, //run command: start running code
                 "reset" => reg.pc = 0xfffc,
                 "status" => cpu::status_report(&reg), //status command: get status of registers

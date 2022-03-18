@@ -134,6 +134,12 @@ pub fn execute<'a>(memory: &mut [Segment], reg: &'a mut CpuStatus) -> Result<u8,
 
     match opcode            //which instruction is it?
     {
+        //Add With Carry
+
+        //Arithmetic Shift Left
+
+        //Bit Test
+
         //Branch Instructions
         0x10 => {flag = !reg.negative_flag(); op::branch(memory, reg, flag)}, //BPL Branch on PLus
         0x30 => {flag = reg.negative_flag(); op::branch(memory, reg, flag)}, //BMI Branch on MInus
@@ -144,6 +150,7 @@ pub fn execute<'a>(memory: &mut [Segment], reg: &'a mut CpuStatus) -> Result<u8,
         0xd0 => {flag = !reg.zero_flag(); op::branch(memory, reg, flag)}, //BNE Branch on Not Equal
         0xf0 => {flag = reg.zero_flag(); op::branch(memory, reg, flag)}, //BEQ Branch on EQual
 
+        //Break
 
         //Clear Flag Instructions
         0x18 => {reg.cycles_used += 2; reg.set_carry(false)}, //CLC
@@ -213,6 +220,9 @@ pub fn execute<'a>(memory: &mut [Segment], reg: &'a mut CpuStatus) -> Result<u8,
         0x6c => {addr = bus::indirect(memory, reg); op::jmp(memory, reg, 5, addr)}, //JMP Indirect
 
 
+        //Jump to Subroutine
+
+
         //Load A
         0xa9 => {op::lda(memory, reg, 2, reg.pc); reg.pc += 1;}, //LDA Immediate
         0xa5 => {addr = bus::zp(memory, reg); op::lda(memory, reg, 3, addr)}, //LDA ZP
@@ -250,6 +260,24 @@ pub fn execute<'a>(memory: &mut [Segment], reg: &'a mut CpuStatus) -> Result<u8,
 
         //No Operation
         0xea => {reg.cycles_used += 2} //NOP
+
+
+        //Rotate Left
+
+
+        //Rotate Right
+
+
+        //Return from Interrupt
+
+
+        //Return from Subroutine
+
+
+        //Subtract with Carry
+
+
+        //Stack Instructions
 
 
         //Set Flag Instructions
