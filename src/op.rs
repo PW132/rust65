@@ -107,7 +107,7 @@ pub fn inc(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: u16)
 }
 
 
-pub fn jmp(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: u16)
+pub fn jmp(reg: &mut CpuStatus, cycles: u8, i_addr: u16)
 {
     reg.pc = i_addr;
 

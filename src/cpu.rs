@@ -11,16 +11,17 @@ pub struct CpuStatus //contains the registers of the CPU, the clock speed, and o
     pub sp: u8,
     pub last_op: u8,
     pub cycles_used: u8,
+    pub reset: bool,
     pub debug_text: bool,
-    pub clock_speed: u32
+    pub clock_time: u64
 }
 
 
 impl CpuStatus
 {
-    pub fn new(speed: u32) -> CpuStatus
+    pub fn new(speed: u64) -> CpuStatus
     {
-        CpuStatus {a:0, x:0, y:0, pc:0xfffc, sr:0b00100100, sp:0, last_op: 0, cycles_used: 0, debug_text: false, clock_speed: speed}
+        CpuStatus {a:0, x:0, y:0, pc:0xfffc, sr:0b00100100, sp:0, last_op: 0, cycles_used: 0, reset: true, debug_text: false, clock_time: (1_000_000_000 / speed)}
     }
 
 
@@ -115,14 +116,18 @@ pub fn execute<'a>(memory: &mut [Segment], reg: &'a mut CpuStatus) -> Result<u8,
     let addr: u16;
     let flag: bool;
 
-    if reg.pc == 0xfffc                                             //do we need to reset the CPU?
+    if reg.reset                                                    //do we need to reset the CPU?
     {
-        let lo_byte : u8 = bus::read(&memory,0xfffc); //retrieve reset vector from ROM
-        let hi_byte : u8 = bus::read(&memory,0xfffd);
+        reg.pc = 0xfffc;
+
+        let lo_byte : u8 = bus::read(&memory,reg.pc); //retrieve reset vector from ROM
+        reg.pc += 1;
+        let hi_byte : u8 = bus::read(&memory,reg.pc);
 
         reg.pc = lo_byte as u16 + ((hi_byte as u16) << 8);           //set new program counter at reset routine
         
         reg.cycles_used += 7;
+        reg.reset = false;
 
         if reg.debug_text { println!("Starting program execution at {:#06x}", reg.pc) }
     }
@@ -216,8 +221,8 @@ pub fn execute<'a>(memory: &mut [Segment], reg: &'a mut CpuStatus) -> Result<u8,
 
 
         //Jump
-        0x4c => {addr = bus::absolute(memory, reg); op::jmp(memory, reg, 3, addr)}, //JMP Absolute
-        0x6c => {addr = bus::indirect(memory, reg); op::jmp(memory, reg, 5, addr)}, //JMP Indirect
+        0x4c => {addr = bus::absolute(memory, reg); op::jmp(reg, 3, addr)}, //JMP Absolute
+        0x6c => {addr = bus::indirect(memory, reg); op::jmp(reg, 5, addr)}, //JMP Indirect
 
 
         //Jump to Subroutine

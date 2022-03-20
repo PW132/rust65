@@ -3,8 +3,18 @@ pub struct Segment<'a>
 {
     pub data: &'a mut [u8],
     pub start_addr: u16,
+    pub end_addr: u16,
     pub write_enabled: bool,
     pub read_enabled: bool
+}
+
+impl Segment<'_>
+{
+    pub fn new(i_data: &mut[u8], i_start_addr: u16, i_write_enabled: bool, i_read_enabled: bool) -> Segment
+    {
+        let length = i_data.len();
+        Segment{data: i_data, start_addr: i_start_addr, end_addr: i_start_addr + length as u16, write_enabled: i_write_enabled, read_enabled: i_read_enabled }
+    }
 }
 
 
@@ -142,7 +152,7 @@ pub fn read(memspace: &[Segment], addr: u16) -> u8 //bus arbitration for reading
     let mut read_byte: u8 = 0;
     for bank in memspace
     {
-        if addr >= bank.start_addr && addr < (bank.data.len() as u16 + bank.start_addr)
+        if addr >= bank.start_addr && addr < bank.end_addr
         {
             if bank.read_enabled
             {
@@ -159,7 +169,7 @@ pub fn write(memspace: &mut[Segment], addr: u16, data: u8) //bus arbitration for
 {
     for bank in memspace
     {
-        if addr >= bank.start_addr && addr < (bank.data.len() as u16 + bank.start_addr)
+        if addr >= bank.start_addr && addr < bank.end_addr
         {
             if bank.write_enabled
             {

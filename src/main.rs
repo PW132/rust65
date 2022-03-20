@@ -4,6 +4,7 @@
 mod bus;
 mod cpu;
 mod op;
+mod terminal;
 
 use crate::bus::Segment;
 use crate::cpu::CpuStatus;
@@ -40,15 +41,14 @@ fn main() {
 
     let memory: &mut[Segment] = //define memory map
     &mut[
-        Segment {data: dram, start_addr: 0, write_enabled: true, read_enabled: true},
-        Segment {data: pia_in, start_addr: 0xd010, write_enabled: false, read_enabled: true},
-        Segment {data: pia_out, start_addr: 0xd010, write_enabled: true, read_enabled: false},
-        Segment {data: rom, start_addr: 0xe000, write_enabled: false, read_enabled: true}
+        Segment::new(dram, 0, true, true),
+        Segment::new(rom, 0xe000, false, true),
+        Segment::new(pia_in, 0xd010, false, true),
+        Segment::new(pia_out, 0xd010, true, false)
     ];
 
 
-    let mut reg = CpuStatus::new(1000000); //create and initialize registers and other cpu state
-    //reg.debug_text = true;
+    let mut nm65 = CpuStatus::new(1000000); //create and initialize registers and other cpu state
 
     let mut cpu_running: bool = false;
     let mut last_cmd: String; //the command line buffer
@@ -62,12 +62,13 @@ fn main() {
     {
         if cpu_running //if true, let's run 6502 code
         {
-            let check: Result<u8, String> = cpu::execute(memory, &mut reg); //execute an instruction, check for errors
+            let now = time::Instant::now();
+            let check: Result<u8, String> = cpu::execute(memory, &mut nm65); //execute an instruction, check for errors
 
             if check.is_err()
             {
                 println!("{}",check.unwrap_err());
-                cpu::status_report(&reg);
+                cpu::status_report(&nm65);
                 cpu_running = false;                                        //stop running if something goes wrong
 
                 print!(">");
@@ -76,34 +77,49 @@ fn main() {
             else 
             {
                 let cycles_taken: u8 = check.unwrap();
-                if reg.debug_text {println!("Instruction used {} cycles...", cycles_taken)};
+                if nm65.debug_text {println!("Instruction used {} cycles...", cycles_taken)};
 
-                let wait_time = time::Duration::from_millis(cycles_taken as u64 * (1000/reg.clock_speed as u64));
-                let now = time::Instant::now();
+                //if the instruction executed successfully, sleep for the amount of time dictacted by cycles taken and the CPU speed
 
-                thread::sleep(wait_time);
-                assert!(now.elapsed() >= wait_time);
+                let mut wait_time = time::Duration::from_nanos(cycles_taken as u64 * nm65.clock_time);
+                let spent_time = now.elapsed();
+                
+                if wait_time > spent_time
+                {
+                    wait_time -= spent_time; 
+                    thread::sleep(wait_time); 
+                }
+                else
+                {
+                    println!("slow!")
+                }
             }
         }
+
         else        //CPU is paused, drop into interactive monitor
         {   
             last_cmd = read!("{}\n");       //get text input and store it whole
             
-            match last_cmd.trim()
+            match last_cmd.trim() //check for single-word commands with no arguments
             {
-                "verbose" => reg.debug_text = !reg.debug_text,
+                "verbose" => nm65.debug_text = !nm65.debug_text,
                 "run" => cpu_running = true, //run command: start running code
-                "reset" => reg.pc = 0xfffc,
-                "status" => cpu::status_report(&reg), //status command: get status of registers
+                "reset" => nm65.reset = true,
+                "status" => cpu::status_report(&nm65), //status command: get status of registers
 
-                "step" =>                   //step command: run a single operation
-                {   let check: Result<u8, String> = cpu::execute(memory, &mut reg);
+                "step" =>                   //step command: run a single operation and display results
+                {   let check: Result<u8, String> = cpu::execute(memory, &mut nm65);
                     if check.is_err()
                     {
                         println!("{}",check.unwrap_err());
                     }
+                    else 
+                    {
+                        let cycles_taken: u8 = check.unwrap();
+                        if nm65.debug_text {println!("Instruction used {} cycles...", cycles_taken)};
+                    }
     
-                    cpu::status_report(&reg); 
+                    cpu::status_report(&nm65); 
                 },
 
                 "exit" => break,            //exit command: close emulator
