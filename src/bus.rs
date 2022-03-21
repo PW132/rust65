@@ -151,7 +151,7 @@ pub fn read(memspace: &mut[Segment], addr: u16) -> u8 //bus arbitration for read
 {
     match addr //put special effects that happen upon a read from a certain address here
     {
-        0xd010 => memspace[3].data[1] &= !0b10000000, //when reading PIA port A input register, clear bit 7 of the output register
+        0xd010 => memspace[2].data[1] &= !0b10000000, //when reading PIA port A input register, clear bit 7 of the output register
         _ => ()
     }
 

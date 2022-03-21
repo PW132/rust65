@@ -17,8 +17,9 @@ use std::fs::File;
 use std::path::Path;
 use std::{panic, time};
 
+use sdl2::keyboard::Keycode;
 use sdl2::pixels::Color;
-use sdl2::event::Event;
+use sdl2::event::{Event, WindowEvent};
 use sdl2::rect::Rect;
 use sdl2::render::{Canvas, TextureCreator};
 use sdl2::ttf::Font;
@@ -32,7 +33,7 @@ fn render_screen(screen: &mut Canvas<Window>, texture_creator: &TextureCreator<W
     screen.clear();
 
     let text = font.render(&String::from_utf8_lossy(&terminal_buf))
-        .blended_wrapped(Color::RGB(255, 255, 255), 480);
+        .blended_wrapped(Color::RGB(255, 255, 255), 640);
     if text.is_ok()
     {
         let text_texture = text.unwrap().as_texture(&texture_creator).unwrap();
@@ -53,7 +54,7 @@ fn main() {
         Ok(file) => file
     };
     let mut rom_array: [u8; 0x1fff] = [0; 0x1fff];
-    let _s = rom_file.read(&mut rom_array);
+    rom_file.read(&mut rom_array);
     let rom: &mut[u8] = &mut rom_array[..];
 
 
@@ -76,14 +77,15 @@ fn main() {
     ];
 
 
-    let mut nm65 = CpuStatus::new(1000000); //create and initialize registers and other cpu state
+    let mut nm65 = CpuStatus::new(100); //create and initialize registers and other cpu state
 
 
-    let mut cpu_running: bool = false;
+    let mut cpu_running: bool = true;
     let mut cycle_total: i32 = 0;
     let mut last_cmd: String; //the command line buffer
 
     let mut terminal_buf: Vec<u8> = Vec::new();
+    let mut i_char: Option<u8> = None;
 
     //Begin initializing SDL2 window...
 
@@ -114,17 +116,25 @@ fn main() {
 
     //Everything started up OK
 
-    print!("Startup complete! \n>");
-    stdout().flush().unwrap();
+    println!("Startup complete!");
 
     loop                //Main execution loop
     {
 
-        for event in event_pump.poll_iter()
+        for event in event_pump.poll_iter() //handle SDL events (typing in monitor window, close, etc)
         {
             match event
             {
                 Event::Quit {..} => return,
+                Event::KeyDown { keycode: Some(Keycode::Escape), .. } => 
+                {
+                    cpu_running = false; 
+                    print!("Emulation paused, dropping into monitor \n>");
+                    stdout().flush();
+                },
+                Event::Window { win_event: WindowEvent::FocusGained, .. } => video_subsystem.text_input().start(),
+                Event::Window { win_event: WindowEvent::FocusLost, .. } => video_subsystem.text_input().stop(),
+                Event::TextInput { text: t, .. } => i_char = Some(t.as_bytes()[0]),
                 _ => ()
             }
         }
@@ -141,7 +151,7 @@ fn main() {
                 cpu_running = false;                                        //stop running if something goes wrong
 
                 print!(">");
-                std::io::stdout().flush().unwrap();
+                stdout().flush();
             }
             else                                                            //if the instruction executed OK...
             {
@@ -149,10 +159,10 @@ fn main() {
                 if nm65.debug_text {println!("Instruction used {} cycles...", cycles_just_used)};   //instruction, add them to a running total
                 cycle_total += i32::from(cycles_just_used);
 
-                if cycle_total > 10000                                                              //if we've used 10,000 cycles (10ms at 1MHz)
+                if cycle_total > 10                                                              //if we've used 10,000 cycles (10ms at 1MHz)
                 {
                     cycle_total = 0;                                                                //reset count
-                    terminal::pia(memory, &mut terminal_buf);                                       //update the peripherals (keyboard, display)
+                    terminal::pia(memory, &mut terminal_buf, &mut i_char);                                       //update the peripherals (keyboard, display)
                     render_screen(&mut screen, &texture_creator, &terminal_buf, &font);
                 }
 
@@ -166,10 +176,6 @@ fn main() {
                     wait_time -= spent_time; 
                     spin_sleep::sleep(wait_time); 
                 }
-                /*else
-                {
-                    println!("slow!")
-                }*/
             }
         }
 
@@ -194,7 +200,7 @@ fn main() {
                     {
                         let cycles_taken: u8 = check.unwrap();
                         if nm65.debug_text {println!("Instruction used {} cycles...", cycles_taken)};
-                        terminal::pia(memory, &mut terminal_buf);
+                        terminal::pia(memory, &mut terminal_buf, &mut i_char);
                         render_screen(&mut screen, &texture_creator, &terminal_buf, &font);
                     }
     
@@ -205,7 +211,7 @@ fn main() {
                 _ => println!("What?")
             }
             print!(">");
-            stdout().flush().unwrap();
+            stdout().flush();
         }
     }
 }

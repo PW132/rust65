@@ -28,7 +28,7 @@ impl CpuStatus
     #[inline]
     pub fn carry_flag(&mut self) -> bool
     {
-        return 1 == (self.sr & !0b1)
+        return 0 != (self.sr & 0b1)
     }
     #[inline]
     pub fn set_carry(&mut self, flag: bool)
@@ -40,7 +40,7 @@ impl CpuStatus
     #[inline]
     pub fn zero_flag(&mut self) -> bool
     {
-        return 1 == (self.sr & !0b10)
+        return 0 != (self.sr & 0b10)
     }
     #[inline]
     pub fn set_zero(&mut self, flag: bool)
@@ -51,7 +51,7 @@ impl CpuStatus
     #[inline]
     pub fn interrupt_flag(&mut self) -> bool
     {
-        return 1 == (self.sr & !0b100)
+        return 0 != (self.sr & 0b100)
     }
     #[inline]
     pub fn set_interrupt(&mut self, flag: bool)
@@ -62,7 +62,7 @@ impl CpuStatus
     #[inline]
     pub fn decimal_flag(&mut self) -> bool
     {
-        return 1 == (self.sr & !0b1000)
+        return 0 != (self.sr & 0b1000)
     }
     #[inline]
     pub fn set_decimal(&mut self, flag: bool)
@@ -73,7 +73,7 @@ impl CpuStatus
     #[inline]
     pub fn break_flag(&mut self) -> bool
     {
-        return 1 == (self.sr & !0b1)
+        return 0 != (self.sr & 0b10000)
     }
     #[inline]
     pub fn set_break(&mut self, flag: bool)
@@ -84,7 +84,7 @@ impl CpuStatus
     #[inline]
     pub fn overflow_flag(&mut self) -> bool
     {
-        return 1 == (self.sr & !0b1000000)
+        return 0 != (self.sr & 0b1000000)
     }
     #[inline]
     pub fn set_overflow(&mut self, flag: bool)
@@ -95,7 +95,7 @@ impl CpuStatus
     #[inline]
     pub fn negative_flag(&mut self) -> bool
     {
-        return 1 == (self.sr & !0b10000000)
+        return 0 != (self.sr & 0b10000000)
     }
     #[inline]
     pub fn set_negative(&mut self, flag: bool)

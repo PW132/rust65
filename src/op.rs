@@ -124,8 +124,8 @@ pub fn lda(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: u16)
 
     reg.a = byte;
 
-    reg.set_negative(byte > 0x7f);
-    reg.set_zero(byte == 0);
+    reg.set_negative(reg.a > 0x7f);
+    reg.set_zero(reg.a == 0);
 
     reg.cycles_used += cycles
 }
@@ -138,8 +138,8 @@ pub fn ldx(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: u16)
 
     reg.x = byte;
 
-    reg.set_negative(byte > 0x7f);
-    reg.set_zero(byte == 0);
+    reg.set_negative(reg.x > 0x7f);
+    reg.set_zero(reg.x == 0);
 
     reg.cycles_used += cycles
 }
@@ -152,8 +152,8 @@ pub fn ldy(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: u16)
 
     reg.y = byte;
 
-    reg.set_negative(byte > 0x7f);
-    reg.set_zero(byte == 0);
+    reg.set_negative(reg.y > 0x7f);
+    reg.set_zero(reg.y == 0);
 
     reg.cycles_used += cycles
 }
