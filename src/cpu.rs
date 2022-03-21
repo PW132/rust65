@@ -21,81 +21,83 @@ impl CpuStatus
 {
     pub fn new(speed: u64) -> CpuStatus
     {
-        CpuStatus {a:0, x:0, y:0, pc:0xfffc, sr:0b00100100, sp:0, last_op: 0, cycles_used: 0, reset: true, debug_text: false, clock_time: (1_000_000_000 / speed)}
+        CpuStatus {a:0, x:0, y:0, pc:0xfffc, sr:0b00100100, sp:0, last_op: 0, cycles_used: 0, reset: true, debug_text: false, clock_time: (1000000000 / speed)}
     }
 
 
+    #[inline]
     pub fn carry_flag(&mut self) -> bool
     {
         return 1 == (self.sr & !0b1)
     }
-
+    #[inline]
     pub fn set_carry(&mut self, flag: bool)
     {
         if flag { self.sr |= 0b1 } else { self.sr &= !0b1 }
     }
 
 
+    #[inline]
     pub fn zero_flag(&mut self) -> bool
     {
         return 1 == (self.sr & !0b10)
     }
-
+    #[inline]
     pub fn set_zero(&mut self, flag: bool)
     {
         if flag { self.sr |= 0b10 } else { self.sr &= !0b10 }
     }
 
-
+    #[inline]
     pub fn interrupt_flag(&mut self) -> bool
     {
         return 1 == (self.sr & !0b100)
     }
-
+    #[inline]
     pub fn set_interrupt(&mut self, flag: bool)
     {
         if flag { self.sr |= 0b100 } else { self.sr &= !0b100 }
     }
 
-
+    #[inline]
     pub fn decimal_flag(&mut self) -> bool
     {
         return 1 == (self.sr & !0b1000)
     }
-
+    #[inline]
     pub fn set_decimal(&mut self, flag: bool)
     {
         if flag { self.sr |= 0b1000 } else { self.sr &= !0b1000 }
     }
 
-
+    #[inline]
     pub fn break_flag(&mut self) -> bool
     {
         return 1 == (self.sr & !0b1)
     }
-
+    #[inline]
     pub fn set_break(&mut self, flag: bool)
     {
         if flag { self.sr |= 0b10000 } else { self.sr &= !0b10000 }
     }
 
-
+    #[inline]
     pub fn overflow_flag(&mut self) -> bool
     {
         return 1 == (self.sr & !0b1000000)
     }
-
+    #[inline]
     pub fn set_overflow(&mut self, flag: bool)
     {
         if flag { self.sr |= 0b1000000 } else { self.sr &= !0b1000000 }
     }
 
-
+    #[inline]
     pub fn negative_flag(&mut self) -> bool
     {
         return 1 == (self.sr & !0b10000000)
     }
-
+    #[inline]
     pub fn set_negative(&mut self, flag: bool)
     {
         if flag { self.sr |= 0b10000000 } else { self.sr &= !0b10000000 }
@@ -120,9 +122,9 @@ pub fn execute<'a>(memory: &mut [Segment], reg: &'a mut CpuStatus) -> Result<u8,
     {
         reg.pc = 0xfffc;
 
-        let lo_byte : u8 = bus::read(&memory,reg.pc); //retrieve reset vector from ROM
+        let lo_byte : u8 = bus::read(memory,reg.pc); //retrieve reset vector from ROM
         reg.pc += 1;
-        let hi_byte : u8 = bus::read(&memory,reg.pc);
+        let hi_byte : u8 = bus::read(memory,reg.pc);
 
         reg.pc = lo_byte as u16 + ((hi_byte as u16) << 8);           //set new program counter at reset routine
         
@@ -132,7 +134,7 @@ pub fn execute<'a>(memory: &mut [Segment], reg: &'a mut CpuStatus) -> Result<u8,
         if reg.debug_text { println!("Starting program execution at {:#06x}", reg.pc) }
     }
 
-    let opcode: u8 = bus::read(&memory, reg.pc);        //get the current opcode
+    let opcode: u8 = bus::read(memory, reg.pc);        //get the current opcode
     reg.last_op = opcode;
 
     reg.pc += 1; 
@@ -283,6 +285,12 @@ pub fn execute<'a>(memory: &mut [Segment], reg: &'a mut CpuStatus) -> Result<u8,
 
 
         //Stack Instructions
+        0x9a => {reg.cycles_used += 2; reg.sp = reg.x}, //TXS
+        0xba => {reg.cycles_used += 2; reg.x = reg.sp}, //TSX
+        0x48 => {reg.cycles_used += 3; bus::push_stack(memory, reg, reg.a)}, //PHA
+        0x68 => {reg.cycles_used += 4; reg.a = bus::pull_stack(memory, reg)},     //PLA
+        0x08 => {reg.cycles_used += 3; bus::push_stack(memory, reg, reg.sr)},//PHP
+        0x28 => {reg.cycles_used += 4; reg.sr = bus::pull_stack(memory, reg)},    //PLP
 
 
         //Set Flag Instructions

@@ -18,7 +18,7 @@ impl Segment<'_>
 }
 
 
-pub fn absolute(memspace: &[Segment], reg: &mut CpuStatus) -> u16 //Absolute
+pub fn absolute(memspace: &mut[Segment], reg: &mut CpuStatus) -> u16 //Absolute
 {
     let lo_byte: u8;
     let hi_byte: u8;
@@ -35,7 +35,7 @@ pub fn absolute(memspace: &[Segment], reg: &mut CpuStatus) -> u16 //Absolute
 }
 
 
-pub fn absolute_x(memspace: &[Segment], reg: &mut CpuStatus) -> u16 //Absolute + X
+pub fn absolute_x(memspace: &mut[Segment], reg: &mut CpuStatus) -> u16 //Absolute + X
 {
     let lo_byte: u8;
     let hi_byte: u8;
@@ -60,7 +60,7 @@ pub fn absolute_x(memspace: &[Segment], reg: &mut CpuStatus) -> u16 //Absolute +
 }
 
 
-pub fn absolute_y(memspace: &[Segment], reg: &mut CpuStatus) -> u16 //Absolute + Y
+pub fn absolute_y(memspace: &mut[Segment], reg: &mut CpuStatus) -> u16 //Absolute + Y
 {
     let lo_byte: u8;
     let hi_byte: u8;
@@ -85,7 +85,7 @@ pub fn absolute_y(memspace: &[Segment], reg: &mut CpuStatus) -> u16 //Absolute +
 }
 
 
-pub fn zp(memspace: &[Segment], reg: &mut CpuStatus) -> u16 //Zero Page
+pub fn zp(memspace: &mut[Segment], reg: &mut CpuStatus) -> u16 //Zero Page
 {
     let o_addr: u16;
 
@@ -96,7 +96,7 @@ pub fn zp(memspace: &[Segment], reg: &mut CpuStatus) -> u16 //Zero Page
 }
 
 
-pub fn zp_x(memspace: &[Segment], reg: &mut CpuStatus) -> u16 //Zero Page + X
+pub fn zp_x(memspace: &mut[Segment], reg: &mut CpuStatus) -> u16 //Zero Page + X
 {
     let o_addr: u8;
 
@@ -107,7 +107,7 @@ pub fn zp_x(memspace: &[Segment], reg: &mut CpuStatus) -> u16 //Zero Page + X
 }
 
 
-pub fn zp_y(memspace: &[Segment], reg: &mut CpuStatus) -> u16 //Zero Page + Y
+pub fn zp_y(memspace: &mut[Segment], reg: &mut CpuStatus) -> u16 //Zero Page + Y
 {
     let o_addr: u8;
 
@@ -118,7 +118,7 @@ pub fn zp_y(memspace: &[Segment], reg: &mut CpuStatus) -> u16 //Zero Page + Y
 }
 
 
-pub fn indirect(memspace: &[Segment], reg: &mut CpuStatus) -> u16 //indirect addressing, only used by JMP. Kinda jank to implement.
+pub fn indirect(memspace: &mut[Segment], reg: &mut CpuStatus) -> u16 //indirect addressing, only used by JMP. Kinda jank to implement.
 {
     let lo_byte: u8;
     let hi_byte: u8;
@@ -147,27 +147,33 @@ pub fn indirect(memspace: &[Segment], reg: &mut CpuStatus) -> u16 //indirect add
 }
 
 
-pub fn read(memspace: &[Segment], addr: u16) -> u8 //bus arbitration for reading bytes
+pub fn read(memspace: &mut[Segment], addr: u16) -> u8 //bus arbitration for reading bytes
 {
-    let mut read_byte: u8 = 0;
-    for bank in memspace
+    match addr //put special effects that happen upon a read from a certain address here
+    {
+        0xd010 => memspace[3].data[1] &= !0b10000000, //when reading PIA port A input register, clear bit 7 of the output register
+        _ => ()
+    }
+
+    for bank in memspace.iter()
     {
         if addr >= bank.start_addr && addr < bank.end_addr
         {
             if bank.read_enabled
             {
-                read_byte = bank.data[(addr - bank.start_addr) as usize];
-                break;
+                return bank.data[(addr - bank.start_addr) as usize];
             }
         }   
     }
-    return read_byte;
+
+    println!("Attempt to read from unmapped address {:#06x}!", addr);
+    return 0xAA;
 }
 
 
 pub fn write(memspace: &mut[Segment], addr: u16, data: u8) //bus arbitration for writing bytes
 {
-    for bank in memspace
+    for bank in memspace.iter_mut()
     {
         if addr >= bank.start_addr && addr < bank.end_addr
         {
@@ -177,6 +183,12 @@ pub fn write(memspace: &mut[Segment], addr: u16, data: u8) //bus arbitration for
                 break;
             }
         }
+    }
+
+    match addr //put special effects that happen upon a write to a certain address here
+    {
+        0xd012 => memspace[2].data[2] |= 0b10000000, //when writing to PIA port B output register, set bit 7 of the input register
+        _ => ()
     }
 
     return;

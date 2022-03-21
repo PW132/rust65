@@ -6,17 +6,45 @@ mod cpu;
 mod op;
 mod terminal;
 
+extern crate sdl2;
+extern crate spin_sleep;
+
 use crate::bus::Segment;
 use crate::cpu::CpuStatus;
+
 use std::io::{Read, Error, ErrorKind, Write, stdout};
 use std::fs::File;
 use std::path::Path;
-use std::{panic, time, thread};
+use std::{panic, time};
+
+use sdl2::pixels::Color;
+use sdl2::event::Event;
+use sdl2::rect::Rect;
+use sdl2::render::{Canvas, TextureCreator};
+use sdl2::ttf::Font;
+use sdl2::video::{Window, WindowContext};
+
 use text_io::{try_scan, read};
+
+#[inline]
+fn render_screen(screen: &mut Canvas<Window>, texture_creator: &TextureCreator<WindowContext>, terminal_buf: &Vec<u8>, font: &Font)
+{
+    screen.clear();
+
+    let text = font.render(&String::from_utf8_lossy(&terminal_buf))
+        .blended_wrapped(Color::RGB(255, 255, 255), 480);
+    if text.is_ok()
+    {
+        let text_texture = text.unwrap().as_texture(&texture_creator).unwrap();
+        let text_dimensions = text_texture.query();
+        screen.copy(&text_texture, None, Some(Rect::new(0,0,text_dimensions.width,text_dimensions.height)));
+    }
+
+    screen.present();
+}
 
 fn main() {
     println!("Starting emulator...");
-
 
     let rom_path = Path::new("applesoft-lite-0.4.bin"); //read ROM file and keep resident in an array
     let mut rom_file = match File::open(rom_path) 
@@ -33,7 +61,7 @@ fn main() {
     let dram: &mut[u8] = &mut dram_array[..];
 
 
-    let mut pia_in_array: [u8; 3] = [0; 3];
+    let mut pia_in_array: [u8; 3] = [0; 3];         //set up Peripheral Interface Adapter registers
     let mut pia_out_array: [u8; 3] = [0; 3];
     let pia_in: &mut[u8] = &mut pia_in_array[..];
     let pia_out: &mut[u8] = &mut pia_out_array[..];
@@ -50,16 +78,57 @@ fn main() {
 
     let mut nm65 = CpuStatus::new(1000000); //create and initialize registers and other cpu state
 
+
     let mut cpu_running: bool = false;
+    let mut cycle_total: i32 = 0;
     let mut last_cmd: String; //the command line buffer
 
+    let mut terminal_buf: Vec<u8> = Vec::new();
+
+    //Begin initializing SDL2 window...
+
+    let sdl_context = sdl2::init().unwrap();                        //initialize all relevant SDL2 systems
+    let video_subsystem = sdl_context.video().unwrap();
+    let ttf_subsystem = sdl2::ttf::init().unwrap();
+
+    let font_path = Path::new("PrintChar21.ttf");                           //Get the Apple font
+    let font = ttf_subsystem.load_font(font_path, 16).unwrap();
+                                                                                   //create a window and canvas
+    let window = video_subsystem.window("TV Terminal (rust65 Apple I)", 640, 480)
+        .position_centered()
+        .build()
+        .unwrap();
+
+    let mut screen = window.into_canvas()
+        .present_vsync()
+        .build()
+        .unwrap();
+
+    let texture_creator = screen.texture_creator();
+
+    screen.set_draw_color(Color::RGB(0,0,0));
+    screen.clear();
+    screen.present();
+
+    let mut event_pump = sdl_context.event_pump().unwrap();
+
+    //Everything started up OK
 
     print!("Startup complete! \n>");
     stdout().flush().unwrap();
 
-    
     loop                //Main execution loop
     {
+
+        for event in event_pump.poll_iter()
+        {
+            match event
+            {
+                Event::Quit {..} => return,
+                _ => ()
+            }
+        }
+
         if cpu_running //if true, let's run 6502 code
         {
             let now = time::Instant::now();
@@ -74,25 +143,33 @@ fn main() {
                 print!(">");
                 std::io::stdout().flush().unwrap();
             }
-            else 
+            else                                                            //if the instruction executed OK...
             {
-                let cycles_taken: u8 = check.unwrap();
-                if nm65.debug_text {println!("Instruction used {} cycles...", cycles_taken)};
+                let cycles_just_used: u8 = check.unwrap();                                          //count cycles used by the completed
+                if nm65.debug_text {println!("Instruction used {} cycles...", cycles_just_used)};   //instruction, add them to a running total
+                cycle_total += i32::from(cycles_just_used);
 
-                //if the instruction executed successfully, sleep for the amount of time dictacted by cycles taken and the CPU speed
+                if cycle_total > 10000                                                              //if we've used 10,000 cycles (10ms at 1MHz)
+                {
+                    cycle_total = 0;                                                                //reset count
+                    terminal::pia(memory, &mut terminal_buf);                                       //update the peripherals (keyboard, display)
+                    render_screen(&mut screen, &texture_creator, &terminal_buf, &font);
+                }
 
-                let mut wait_time = time::Duration::from_nanos(cycles_taken as u64 * nm65.clock_time);
+                //sleep for the amount of time dictated by cycles taken and the CPU speed
+
+                let mut wait_time = time::Duration::from_nanos(cycles_just_used as u64 * nm65.clock_time);
                 let spent_time = now.elapsed();
                 
                 if wait_time > spent_time
                 {
                     wait_time -= spent_time; 
-                    thread::sleep(wait_time); 
+                    spin_sleep::sleep(wait_time); 
                 }
-                else
+                /*else
                 {
                     println!("slow!")
-                }
+                }*/
             }
         }
 
@@ -100,14 +177,14 @@ fn main() {
         {   
             last_cmd = read!("{}\n");       //get text input and store it whole
             
-            match last_cmd.trim() //check for single-word commands with no arguments
+            match last_cmd.trim()           //check for single-word commands with no arguments
             {
-                "verbose" => nm65.debug_text = !nm65.debug_text,
-                "run" => cpu_running = true, //run command: start running code
-                "reset" => nm65.reset = true,
-                "status" => cpu::status_report(&nm65), //status command: get status of registers
+                "verbose" => nm65.debug_text = !nm65.debug_text, //enable or disable debug commentary
+                "run" => cpu_running = true,                     //run command: start running code
+                "reset" => nm65.reset = true,                    //reset command: reset the CPU
+                "status" => cpu::status_report(&nm65),      //status command: get status of registers
 
-                "step" =>                   //step command: run a single operation and display results
+                "step" =>                                        //step command: run a single operation and display results
                 {   let check: Result<u8, String> = cpu::execute(memory, &mut nm65);
                     if check.is_err()
                     {
@@ -117,18 +194,18 @@ fn main() {
                     {
                         let cycles_taken: u8 = check.unwrap();
                         if nm65.debug_text {println!("Instruction used {} cycles...", cycles_taken)};
+                        terminal::pia(memory, &mut terminal_buf);
+                        render_screen(&mut screen, &texture_creator, &terminal_buf, &font);
                     }
     
                     cpu::status_report(&nm65); 
                 },
 
-                "exit" => break,            //exit command: close emulator
+                "exit" => return,                                //exit command: close emulator
                 _ => println!("What?")
             }
             print!(">");
             stdout().flush().unwrap();
         }
     }
-
-    return;
 }
