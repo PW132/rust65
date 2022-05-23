@@ -113,7 +113,24 @@ pub fn jmp(reg: &mut CpuStatus, cycles: u8, i_addr: u16)
 
     reg.cycles_used += cycles;
 
-    if reg.debug_text {println!("Jumping to new address {:#06x}...", reg.pc)}
+    if reg.debug_text {println!("JMP to new address {:#06x}...", reg.pc)}
+}
+
+
+pub fn jsr(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: u16)
+{
+    let return_addr: u16 = reg.pc - 1;
+    let return_byte_lo: u8 = (return_addr & 0xff) as u8;
+    let return_byte_hi: u8 = ((return_addr & 0xff00) >> 8) as u8;
+
+    bus::push_stack(memory, reg, return_byte_hi);
+    bus::push_stack(memory, reg, return_byte_lo);
+
+    reg.pc = i_addr;
+
+    reg.cycles_used += cycles;
+
+    if reg.debug_text {println!("JSR to new address {:#06x}...", reg.pc)}
 }
 
 
@@ -154,6 +171,17 @@ pub fn ldy(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: u16)
 
     reg.set_negative(reg.y > 0x7f);
     reg.set_zero(reg.y == 0);
+
+    reg.cycles_used += cycles
+}
+
+
+pub fn rts(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8)
+{
+    let return_byte_lo: u8 = bus::pull_stack(memory, reg);
+    let return_byte_hi: u8 = bus::pull_stack(memory, reg);
+
+    reg.pc = (((return_byte_hi as u16) << 8) + return_byte_lo as u16) + 1;
 
     reg.cycles_used += cycles
 }

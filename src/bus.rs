@@ -35,7 +35,7 @@ pub fn absolute(memspace: &mut[Segment], reg: &mut CpuStatus) -> u16 //Absolute
 }
 
 
-pub fn absolute_x(memspace: &mut[Segment], reg: &mut CpuStatus) -> u16 //Absolute + X
+pub fn absolute_x(memspace: &mut[Segment], reg: &mut CpuStatus, wrap_check: bool) -> u16 //Absolute + X
 {
     let lo_byte: u8;
     let hi_byte: u8;
@@ -51,7 +51,7 @@ pub fn absolute_x(memspace: &mut[Segment], reg: &mut CpuStatus) -> u16 //Absolut
 
     o_addr = addr + reg.x as u16;
 
-    if addr & 0x100 != o_addr & 0x100
+    if addr & 0x100 != o_addr & 0x100 && wrap_check
     {
         reg.cycles_used += 1;
     }
@@ -60,7 +60,7 @@ pub fn absolute_x(memspace: &mut[Segment], reg: &mut CpuStatus) -> u16 //Absolut
 }
 
 
-pub fn absolute_y(memspace: &mut[Segment], reg: &mut CpuStatus) -> u16 //Absolute + Y
+pub fn absolute_y(memspace: &mut[Segment], reg: &mut CpuStatus, wrap_check: bool) -> u16 //Absolute + Y
 {
     let lo_byte: u8;
     let hi_byte: u8;
@@ -76,7 +76,7 @@ pub fn absolute_y(memspace: &mut[Segment], reg: &mut CpuStatus) -> u16 //Absolut
 
     o_addr = addr + reg.y as u16;
 
-    if addr & 0x100 != o_addr & 0x100
+    if addr & 0x100 != o_addr & 0x100 && wrap_check
     {
         reg.cycles_used += 1;
     }
@@ -142,6 +142,54 @@ pub fn indirect(memspace: &mut[Segment], reg: &mut CpuStatus) -> u16 //indirect 
     o_addr += read(memspace, i_addr) as u16;
     o_addr <<= 8;
     o_addr += read(memspace, i_addr2) as u16;
+
+    return o_addr;
+}
+
+pub fn indirect_x(memspace: &mut[Segment], reg: &mut CpuStatus) -> u16 //Indirect + X.
+{
+    let zp_addr: u8;
+    let lo_byte: u8;
+    let hi_byte: u8;
+
+    let mut o_addr: u16 = 0;
+
+    zp_addr = read(memspace, reg.pc).wrapping_add(reg.x);
+    reg.pc += 1;
+    lo_byte = read(memspace, zp_addr as u16);
+    hi_byte = read(memspace, zp_addr as u16 + 1);
+
+    o_addr += hi_byte as u16;
+    o_addr <<= 8;
+    o_addr += lo_byte as u16;
+
+    return o_addr;
+}
+
+pub fn indirect_y(memspace: &mut[Segment], reg: &mut CpuStatus, wrap_check: bool) -> u16 //Indirect + Y. Significantly different to Indirect + X in operation.
+{
+    let zp_addr: u8;
+    let lo_byte: u8;
+    let hi_byte: u8;
+
+    let mut i_addr: u16 = 0;
+    let mut o_addr: u16 = 0;
+
+    zp_addr = read(memspace, reg.pc);
+    reg.pc += 1;
+    lo_byte = read(memspace, zp_addr as u16);
+    hi_byte = read(memspace, zp_addr as u16 + 1);
+
+    i_addr += hi_byte as u16;
+    i_addr <<= 8;
+    i_addr += lo_byte as u16;
+
+    o_addr = i_addr.wrapping_add(reg.y as u16);
+
+    if i_addr & 0x100 != o_addr & 0x100 && wrap_check
+    {
+        reg.cycles_used += 1;
+    }
 
     return o_addr;
 }

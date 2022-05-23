@@ -143,6 +143,8 @@ pub fn execute<'a>(memory: &mut [Segment], reg: &'a mut CpuStatus) -> Result<u8,
     {
         //Add With Carry
 
+        //And Bitwise with Accumulator
+
         //Arithmetic Shift Left
 
         //Bit Test
@@ -171,10 +173,10 @@ pub fn execute<'a>(memory: &mut [Segment], reg: &'a mut CpuStatus) -> Result<u8,
         0xc5 => {addr = bus::zp(memory, reg); op::cmp(memory, reg, 3, addr);}, //CMP ZP
         0xd5 => {addr = bus::zp_x(memory, reg); op::cmp(memory, reg, 4, addr);}, //CMP ZP,X
         0xcd => {addr = bus::absolute(memory, reg); op::cmp(memory, reg, 4, addr)}, //CMP Absolute
-        0xdd => {addr = bus::absolute_x(memory, reg); op::cmp(memory, reg, 4, addr)}, //CMP Absolute,X
-        0xd9 => {addr = bus::absolute_y(memory, reg); op::cmp(memory, reg, 4, addr)}, //CMP Absolute,Y
-        //CMP Indirect,X
-        //CMP Indirect,Y
+        0xdd => {addr = bus::absolute_x(memory, reg, true); op::cmp(memory, reg, 4, addr)}, //CMP Absolute,X
+        0xd9 => {addr = bus::absolute_y(memory, reg, true); op::cmp(memory, reg, 4, addr)}, //CMP Absolute,Y
+        0xc1 => {addr = bus::indirect_x(memory, reg); op::cmp(memory, reg, 6, addr)}, //CMP Indirect,X
+        0xd1 => {addr = bus::indirect_y(memory, reg, true); op::cmp(memory, reg, 5, addr)}, //CMP Indirect,Y
 
 
         //Compare with X
@@ -193,7 +195,7 @@ pub fn execute<'a>(memory: &mut [Segment], reg: &'a mut CpuStatus) -> Result<u8,
         0xc6 => {addr = bus::zp(memory, reg); op::dec(memory, reg, 5, addr)}, //DEC ZP
         0xd6 => {addr = bus::zp_x(memory, reg); op::dec(memory, reg, 6, addr)}, //DEC ZP,X
         0xce => {addr = bus::absolute(memory, reg); op::dec(memory, reg, 6, addr)}, //DEC Absolute
-        0xde => {addr = bus::absolute_x(memory, reg); op::dec(memory, reg, 7, addr)}, //DEC Absolute,X
+        0xde => {addr = bus::absolute_x(memory, reg, false); op::dec(memory, reg, 7, addr)}, //DEC Absolute,X
 
 
         //Decrement X
@@ -211,7 +213,7 @@ pub fn execute<'a>(memory: &mut [Segment], reg: &'a mut CpuStatus) -> Result<u8,
         0xe6 => {addr = bus::zp(memory, reg); op::inc(memory, reg, 5, addr)}, //INC ZP
         0xf6 => {addr = bus::zp_x(memory, reg); op::inc(memory, reg, 6, addr)}, //INC ZP,X
         0xee => {addr = bus::absolute(memory, reg); op::inc(memory, reg, 6, addr)}, //INC Absolute
-        0xfe => {addr = bus::absolute_x(memory, reg); op::inc(memory, reg, 7, addr)}, //INC Absolute,X
+        0xfe => {addr = bus::absolute_x(memory, reg, false); op::inc(memory, reg, 7, addr)}, //INC Absolute,X
 
 
         //Increment X
@@ -228,6 +230,7 @@ pub fn execute<'a>(memory: &mut [Segment], reg: &'a mut CpuStatus) -> Result<u8,
 
 
         //Jump to Subroutine
+        0x20 => {addr = bus::absolute(memory, reg); op::jsr(memory, reg, 6, addr)}, //JSR Absolute
 
 
         //Load A
@@ -235,10 +238,10 @@ pub fn execute<'a>(memory: &mut [Segment], reg: &'a mut CpuStatus) -> Result<u8,
         0xa5 => {addr = bus::zp(memory, reg); op::lda(memory, reg, 3, addr)}, //LDA ZP
         0xb5 => {addr = bus::zp_x(memory, reg); op::lda(memory, reg, 4, addr)}, //LDA ZP,X
         0xad => {addr = bus::absolute(memory, reg); op::lda(memory, reg, 4, addr)}, //LDA Absolute
-        0xbd => {addr = bus::absolute_x(memory, reg); op::lda(memory, reg, 4, addr)}, //LDA Absolute,X
-        0xb9 => {addr = bus::absolute_y(memory, reg); op::lda(memory, reg, 4, addr)}, //LDA Absolute,Y
-        //LDA Indirect,X
-        //LDA Indirect,Y
+        0xbd => {addr = bus::absolute_x(memory, reg, true); op::lda(memory, reg, 4, addr)}, //LDA Absolute,X
+        0xb9 => {addr = bus::absolute_y(memory, reg, true); op::lda(memory, reg, 4, addr)}, //LDA Absolute,Y
+        0xa1 => {addr = bus::indirect_x(memory, reg); op::lda(memory, reg, 6, addr)}, //LDA Indirect,X
+        0xb1 => {addr = bus::indirect_y(memory, reg, true); op::lda(memory, reg, 5, addr)}, //LDA Indirect,Y
 
 
         //Load X
@@ -246,7 +249,7 @@ pub fn execute<'a>(memory: &mut [Segment], reg: &'a mut CpuStatus) -> Result<u8,
         0xa6 => {addr = bus::zp(memory, reg); op::ldx(memory, reg, 3, addr)}, //LDX ZP
         0xb6 => {addr = bus::zp_y(memory, reg); op::ldx(memory, reg, 4, addr)}, //LDX ZP,Y
         0xae => {addr = bus::absolute(memory, reg); op::ldx(memory, reg, 4, addr)}, //LDX Absolute
-        0xbe => {addr = bus::absolute_y(memory, reg); op::ldx(memory, reg, 4, addr)}, //LDX Absolute,Y
+        0xbe => {addr = bus::absolute_y(memory, reg, true); op::ldx(memory, reg, 4, addr)}, //LDX Absolute,Y
 
 
         //Load Y
@@ -254,7 +257,7 @@ pub fn execute<'a>(memory: &mut [Segment], reg: &'a mut CpuStatus) -> Result<u8,
         0xa4 => {addr = bus::zp(memory, reg); op::ldy(memory, reg, 3, addr)}, //LDY ZP
         0xb4 => {addr = bus::zp_x(memory, reg); op::ldy(memory, reg, 4, addr)}, //LDY ZP,X
         0xac => {addr = bus::absolute(memory, reg); op::ldy(memory, reg, 4, addr)}, //LDY Absolute
-        0xbc => {addr = bus::absolute_x(memory, reg); op::ldy(memory, reg, 4, addr)}, //LDY Absolute,X
+        0xbc => {addr = bus::absolute_x(memory, reg, true); op::ldy(memory, reg, 4, addr)}, //LDY Absolute,X
 
 
         //Logical Shift Right
@@ -262,11 +265,11 @@ pub fn execute<'a>(memory: &mut [Segment], reg: &'a mut CpuStatus) -> Result<u8,
         0x46 => {addr = bus::zp(memory, reg); op::lsr(memory, reg, 5, Some(addr))}, //LSR ZP
         0x56 => {addr = bus::zp_x(memory, reg); op::lsr(memory, reg, 6, Some(addr))}, //LSR ZP,X
         0x4e => {addr = bus::absolute(memory, reg); op::lsr(memory, reg, 6, Some(addr))}, //LSR Absolute
-        0x5e => {addr = bus::absolute_x(memory, reg); op::lsr(memory, reg, 7, Some(addr))}, //LSR Absolute,X
+        0x5e => {addr = bus::absolute_x(memory, reg, false); op::lsr(memory, reg, 7, Some(addr))}, //LSR Absolute,X
 
 
         //No Operation
-        0xea => {reg.cycles_used += 2} //NOP
+        0xea => {reg.cycles_used += 2}, //NOP
 
 
         //Rotate Left
@@ -279,6 +282,7 @@ pub fn execute<'a>(memory: &mut [Segment], reg: &'a mut CpuStatus) -> Result<u8,
 
 
         //Return from Subroutine
+        0x60 => {op::rts(memory, reg, 6)},
 
 
         //Subtract with Carry
@@ -303,10 +307,10 @@ pub fn execute<'a>(memory: &mut [Segment], reg: &'a mut CpuStatus) -> Result<u8,
         0x85 => {addr = bus::zp(memory, reg); op::sta(memory, reg, 3, addr)}, //STA ZP
         0x95 => {addr = bus::zp_x(memory, reg); op::sta(memory, reg, 4, addr)}, //STA ZP,X
         0x8d => {addr = bus::absolute(memory, reg); op::sta(memory, reg, 4, addr)}, //STA Absolute
-        0x9d => {addr = bus::absolute_x(memory, reg); op::sta(memory, reg, 5, addr)}, //STA Absolute,X
-        0x99 => {addr = bus::absolute_y(memory, reg); op::sta(memory, reg, 5, addr)}, //STA Absolute,Y
-        //STA Indirect,X
-        //STA Indirect,Y
+        0x9d => {addr = bus::absolute_x(memory, reg, false); op::sta(memory, reg, 5, addr)}, //STA Absolute,X
+        0x99 => {addr = bus::absolute_y(memory, reg, false); op::sta(memory, reg, 5, addr)}, //STA Absolute,Y
+        0x81 => {addr = bus::indirect_x(memory, reg); op::sta(memory, reg, 6, addr)}, //STA Indirect,X
+        0x91 => {addr = bus::indirect_y(memory, reg, false); op::sta(memory, reg, 6, addr)}, //STA Indirect,Y
 
 
         //Store X
