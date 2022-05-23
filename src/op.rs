@@ -3,6 +3,27 @@ use crate::cpu::CpuStatus;
 use crate::bus;
 use crate::bus::Segment;
 
+pub fn and(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: u16)
+{
+    let byte: u8 = bus::read(memory, i_addr);
+
+    reg.a &= byte;
+    reg.set_negative(reg.a > 0x7f);
+    reg.set_zero(reg.a == 0);
+
+    reg.cycles_used += cycles;
+}
+
+pub fn bit(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: u16)
+{
+    let byte: u8 = bus::read(memory, i_addr);
+
+    reg.set_negative(0 != byte & 0b10000000);
+    reg.set_overflow(0 != byte & 0b1000000);
+    reg.set_zero(0 == byte & reg.a);
+
+    reg.cycles_used += cycles;
+}
 
 pub fn branch(memory: &mut [Segment], reg: &mut CpuStatus, flag: bool) //basis for all branch instructions
 {

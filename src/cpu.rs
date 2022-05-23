@@ -144,10 +144,20 @@ pub fn execute<'a>(memory: &mut [Segment], reg: &'a mut CpuStatus) -> Result<u8,
         //Add With Carry
 
         //And Bitwise with Accumulator
+        0x29 => {{op::and(memory, reg, 2, reg.pc); reg.pc += 1}}, //AND Immediate
+        0x25 => {addr = bus::zp(memory, reg); op::and(memory, reg, 3, addr);}, //AND ZP
+        0x35 => {addr = bus::zp_x(memory, reg); op::and(memory, reg, 4, addr);}, //AND ZP,X
+        0x2d => {addr = bus::absolute(memory, reg); op::and(memory, reg, 4, addr);}, //AND Absolute
+        0x3d => {addr = bus::absolute_x(memory, reg, true); op::and(memory, reg, 4, addr);}, //AND Absolute,X
+        0x39 => {addr = bus::absolute_y(memory, reg, true); op::and(memory, reg, 4, addr);}, //AND Absolute,Y
+        0x21 => {addr = bus::indirect_x(memory, reg); op::and(memory, reg, 6, addr);}, //AND Indirect,X
+        0x31 => {addr = bus::indirect_y(memory, reg, true); op::and(memory, reg, 5, addr);}, //AND Indirect,Y
 
         //Arithmetic Shift Left
 
         //Bit Test
+        0x24 => {addr = bus::zp(memory, reg); op::bit(memory, reg, 3, addr);}, // BIT ZP
+        0x2c => {addr = bus::absolute(memory, reg); op::bit(memory, reg, 4, addr);}, // BIT Absolute
 
         //Branch Instructions
         0x10 => {flag = !reg.negative_flag(); op::branch(memory, reg, flag)}, //BPL Branch on PLus

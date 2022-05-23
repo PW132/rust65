@@ -77,7 +77,7 @@ fn main() {
     ];
 
 
-    let mut nm65 = CpuStatus::new(100); //create and initialize registers and other cpu state
+    let mut nm65 = CpuStatus::new(100000); //create and initialize registers and other cpu state
 
 
     let mut cpu_running: bool = true;
