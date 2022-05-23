@@ -1,24 +1,31 @@
 use crate::cpu::CpuStatus;
-pub struct Segment<'a>
-{
+pub struct Segment<'a> {
     pub data: &'a mut [u8],
     pub start_addr: u16,
     pub end_addr: u16,
     pub write_enabled: bool,
-    pub read_enabled: bool
+    pub read_enabled: bool,
 }
 
-impl Segment<'_>
-{
-    pub fn new(i_data: &mut[u8], i_start_addr: u16, i_write_enabled: bool, i_read_enabled: bool) -> Segment
-    {
+impl Segment<'_> {
+    pub fn new(
+        i_data: &mut [u8],
+        i_start_addr: u16,
+        i_write_enabled: bool,
+        i_read_enabled: bool,
+    ) -> Segment {
         let length = i_data.len();
-        Segment{data: i_data, start_addr: i_start_addr, end_addr: i_start_addr + length as u16, write_enabled: i_write_enabled, read_enabled: i_read_enabled }
+        Segment {
+            data: i_data,
+            start_addr: i_start_addr,
+            end_addr: i_start_addr + length as u16,
+            write_enabled: i_write_enabled,
+            read_enabled: i_read_enabled,
+        }
     }
 }
 
-
-pub fn absolute(memspace: &mut[Segment], reg: &mut CpuStatus) -> u16 //Absolute
+pub fn absolute(memspace: &mut [Segment], reg: &mut CpuStatus) -> u16 //Absolute
 {
     let lo_byte: u8;
     let hi_byte: u8;
@@ -34,8 +41,7 @@ pub fn absolute(memspace: &mut[Segment], reg: &mut CpuStatus) -> u16 //Absolute
     return o_addr;
 }
 
-
-pub fn absolute_x(memspace: &mut[Segment], reg: &mut CpuStatus, wrap_check: bool) -> u16 //Absolute + X
+pub fn absolute_x(memspace: &mut [Segment], reg: &mut CpuStatus, wrap_check: bool) -> u16 //Absolute + X
 {
     let lo_byte: u8;
     let hi_byte: u8;
@@ -51,16 +57,14 @@ pub fn absolute_x(memspace: &mut[Segment], reg: &mut CpuStatus, wrap_check: bool
 
     o_addr = addr + reg.x as u16;
 
-    if addr & 0x100 != o_addr & 0x100 && wrap_check
-    {
+    if addr & 0x100 != o_addr & 0x100 && wrap_check {
         reg.cycles_used += 1;
     }
 
     return o_addr;
 }
 
-
-pub fn absolute_y(memspace: &mut[Segment], reg: &mut CpuStatus, wrap_check: bool) -> u16 //Absolute + Y
+pub fn absolute_y(memspace: &mut [Segment], reg: &mut CpuStatus, wrap_check: bool) -> u16 //Absolute + Y
 {
     let lo_byte: u8;
     let hi_byte: u8;
@@ -76,16 +80,14 @@ pub fn absolute_y(memspace: &mut[Segment], reg: &mut CpuStatus, wrap_check: bool
 
     o_addr = addr + reg.y as u16;
 
-    if addr & 0x100 != o_addr & 0x100 && wrap_check
-    {
+    if addr & 0x100 != o_addr & 0x100 && wrap_check {
         reg.cycles_used += 1;
     }
 
     return o_addr;
 }
 
-
-pub fn zp(memspace: &mut[Segment], reg: &mut CpuStatus) -> u16 //Zero Page
+pub fn zp(memspace: &mut [Segment], reg: &mut CpuStatus) -> u16 //Zero Page
 {
     let o_addr: u16;
 
@@ -95,8 +97,7 @@ pub fn zp(memspace: &mut[Segment], reg: &mut CpuStatus) -> u16 //Zero Page
     return o_addr;
 }
 
-
-pub fn zp_x(memspace: &mut[Segment], reg: &mut CpuStatus) -> u16 //Zero Page + X
+pub fn zp_x(memspace: &mut [Segment], reg: &mut CpuStatus) -> u16 //Zero Page + X
 {
     let o_addr: u8;
 
@@ -106,8 +107,7 @@ pub fn zp_x(memspace: &mut[Segment], reg: &mut CpuStatus) -> u16 //Zero Page + X
     return o_addr as u16;
 }
 
-
-pub fn zp_y(memspace: &mut[Segment], reg: &mut CpuStatus) -> u16 //Zero Page + Y
+pub fn zp_y(memspace: &mut [Segment], reg: &mut CpuStatus) -> u16 //Zero Page + Y
 {
     let o_addr: u8;
 
@@ -117,8 +117,7 @@ pub fn zp_y(memspace: &mut[Segment], reg: &mut CpuStatus) -> u16 //Zero Page + Y
     return o_addr as u16;
 }
 
-
-pub fn indirect(memspace: &mut[Segment], reg: &mut CpuStatus) -> u16 //indirect addressing, only used by JMP. Kinda jank to implement.
+pub fn indirect(memspace: &mut [Segment], reg: &mut CpuStatus) -> u16 //indirect addressing, only used by JMP. Kinda jank to implement.
 {
     let lo_byte: u8;
     let hi_byte: u8;
@@ -138,7 +137,6 @@ pub fn indirect(memspace: &mut[Segment], reg: &mut CpuStatus) -> u16 //indirect 
     i_addr += lo_byte as u16;
     i_addr2 += lo_byte.wrapping_add(1) as u16; //We use wrapping_add here to mimic the NMOS 6502 bug where indirect jumps don't work right at page boundaries
 
-
     o_addr += read(memspace, i_addr) as u16;
     o_addr <<= 8;
     o_addr += read(memspace, i_addr2) as u16;
@@ -146,7 +144,7 @@ pub fn indirect(memspace: &mut[Segment], reg: &mut CpuStatus) -> u16 //indirect 
     return o_addr;
 }
 
-pub fn indirect_x(memspace: &mut[Segment], reg: &mut CpuStatus) -> u16 //Indirect + X.
+pub fn indirect_x(memspace: &mut [Segment], reg: &mut CpuStatus) -> u16 //Indirect + X.
 {
     let zp_addr: u8;
     let lo_byte: u8;
@@ -166,7 +164,7 @@ pub fn indirect_x(memspace: &mut[Segment], reg: &mut CpuStatus) -> u16 //Indirec
     return o_addr;
 }
 
-pub fn indirect_y(memspace: &mut[Segment], reg: &mut CpuStatus, wrap_check: bool) -> u16 //Indirect + Y. Significantly different to Indirect + X in operation.
+pub fn indirect_y(memspace: &mut [Segment], reg: &mut CpuStatus, wrap_check: bool) -> u16 //Indirect + Y. Significantly different to Indirect + X in operation.
 {
     let zp_addr: u8;
     let lo_byte: u8;
@@ -186,16 +184,14 @@ pub fn indirect_y(memspace: &mut[Segment], reg: &mut CpuStatus, wrap_check: bool
 
     o_addr = i_addr.wrapping_add(reg.y as u16);
 
-    if i_addr & 0x100 != o_addr & 0x100 && wrap_check
-    {
+    if i_addr & 0x100 != o_addr & 0x100 && wrap_check {
         reg.cycles_used += 1;
     }
 
     return o_addr;
 }
 
-
-pub fn read(memspace: &mut[Segment], addr: u16) -> u8 //bus arbitration for reading bytes
+pub fn read(memspace: &mut [Segment], addr: u16) -> u8 //bus arbitration for reading bytes
 {
     match addr //put special effects that happen upon a read from a certain address here
     {
@@ -203,30 +199,23 @@ pub fn read(memspace: &mut[Segment], addr: u16) -> u8 //bus arbitration for read
         _ => ()
     }
 
-    for bank in memspace.iter()
-    {
-        if addr >= bank.start_addr && addr < bank.end_addr
-        {
-            if bank.read_enabled
-            {
+    for bank in memspace.iter() {
+        if addr >= bank.start_addr && addr < bank.end_addr {
+            if bank.read_enabled {
                 return bank.data[(addr - bank.start_addr) as usize];
             }
-        }   
+        }
     }
 
     println!("Attempt to read from unmapped address {:#06x}!", addr);
     return 0xAA;
 }
 
-
-pub fn write(memspace: &mut[Segment], addr: u16, data: u8) //bus arbitration for writing bytes
+pub fn write(memspace: &mut [Segment], addr: u16, data: u8) //bus arbitration for writing bytes
 {
-    for bank in memspace.iter_mut()
-    {
-        if addr >= bank.start_addr && addr < bank.end_addr
-        {
-            if bank.write_enabled
-            {
+    for bank in memspace.iter_mut() {
+        if addr >= bank.start_addr && addr < bank.end_addr {
+            if bank.write_enabled {
                 bank.data[(addr - bank.start_addr) as usize] = data;
                 break;
             }
@@ -242,35 +231,42 @@ pub fn write(memspace: &mut[Segment], addr: u16, data: u8) //bus arbitration for
     return;
 }
 
-
-pub fn push_stack(memory: &mut[Segment], reg: &mut CpuStatus, data: u8) //push a byte onto the stack and update the pointer
+pub fn push_stack(memory: &mut [Segment], reg: &mut CpuStatus, data: u8)
+//push a byte onto the stack and update the pointer
 {
-    if reg.debug_text { print!("Pushing {:#04x} onto stack... ", data) }
+    if reg.debug_text {
+        print!("Pushing {:#04x} onto stack... ", data)
+    }
 
     reg.sp = reg.sp.wrapping_sub(1);
 
-    if reg.debug_text 
-    {
-        if reg.sp == 0 { println!("stack overflow!") }
-        else { println!("push succeeded") }
+    if reg.debug_text {
+        if reg.sp == 0 {
+            println!("stack overflow!")
+        } else {
+            println!("push succeeded")
+        }
     }
 
     write(memory, reg.sp as u16 + 0x101, data)
 }
 
-
-pub fn pull_stack(memory: &mut[Segment], reg: &mut CpuStatus) -> u8  //pull a byte from the stack and update the pointer
+pub fn pull_stack(memory: &mut [Segment], reg: &mut CpuStatus) -> u8 //pull a byte from the stack and update the pointer
 {
     let pulled: u8 = read(memory, reg.sp as u16 + 0x101);
 
-    if reg.debug_text { print!("Pulling {:#04x} from stack... ", pulled) }
+    if reg.debug_text {
+        print!("Pulling {:#04x} from stack... ", pulled)
+    }
 
     reg.sp = reg.sp.wrapping_add(1);
 
-    if reg.debug_text 
-    {
-        if reg.sp == 0 { println!("stack underflow!") }
-        else { println!("pull succeeded") }
+    if reg.debug_text {
+        if reg.sp == 0 {
+            println!("stack underflow!")
+        } else {
+            println!("pull succeeded")
+        }
     }
 
     return pulled;

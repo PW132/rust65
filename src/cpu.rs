@@ -231,7 +231,7 @@ pub fn execute<'a>(memory: &mut [Segment], reg: &'a mut CpuStatus) -> Result<u8,
 
 
         //Increment Y
-        0xc8 => {reg.x = reg.x.wrapping_add(1); reg.set_zero(reg.y == 0); reg.set_negative(reg.y > 0x7f);  reg.cycles_used += 2;}, //INY
+        0xc8 => {reg.y = reg.y.wrapping_add(1); reg.set_zero(reg.y == 0); reg.set_negative(reg.y > 0x7f);  reg.cycles_used += 2;}, //INY
 
 
         //Jump
@@ -333,6 +333,13 @@ pub fn execute<'a>(memory: &mut [Segment], reg: &'a mut CpuStatus) -> Result<u8,
         0x84 => {addr = bus::zp(memory, reg); op::sty(memory, reg, 3, addr)}, //STA ZP
         0x94 => {addr = bus::zp_x(memory, reg); op::sty(memory, reg, 4, addr)}, //STA ZP,X
         0x8c => {addr = bus::absolute(memory, reg); op::sty(memory, reg, 4, addr)}, //STA Absolute
+
+
+        //Transfer Register Value
+        0xaa => {op::transfer(reg, 'a', 'x'); reg.pc += 1;}, //TAX
+        0xa8 => {op::transfer(reg, 'a', 'y'); reg.pc += 1;}, //TAY
+        0x8a => {op::transfer(reg, 'x', 'a'); reg.pc += 1;}, //TXA
+        0x98 => {op::transfer(reg, 'y', 'a'); reg.pc += 1;}, //TYA
 
 
         other => return Err(format!("Unrecognized opcode {:#04x}! Halting execution...", other)) //whoops! invalid opcode

@@ -1,10 +1,11 @@
-use crate::cpu;
-use crate::cpu::CpuStatus;
+use std::string;
+
 use crate::bus;
 use crate::bus::Segment;
+use crate::cpu;
+use crate::cpu::CpuStatus;
 
-pub fn and(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: u16)
-{
+pub fn and(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: u16) {
     let byte: u8 = bus::read(memory, i_addr);
 
     reg.a &= byte;
@@ -14,8 +15,7 @@ pub fn and(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: u16)
     reg.cycles_used += cycles;
 }
 
-pub fn bit(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: u16)
-{
+pub fn bit(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: u16) {
     let byte: u8 = bus::read(memory, i_addr);
 
     reg.set_negative(0 != byte & 0b10000000);
@@ -25,45 +25,54 @@ pub fn bit(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: u16)
     reg.cycles_used += cycles;
 }
 
-pub fn branch(memory: &mut [Segment], reg: &mut CpuStatus, flag: bool) //basis for all branch instructions
+pub fn branch(memory: &mut [Segment], reg: &mut CpuStatus, flag: bool)
+//basis for all branch instructions
 {
-    reg.cycles_used += 2;     //use two cycles no matter what
+    reg.cycles_used += 2; //use two cycles no matter what
 
-    if flag                   //if the flag we tested is true and we should branch:
+    if flag
+    //if the flag we tested is true and we should branch:
     {
         reg.cycles_used += 1; //use another cycle
 
-        let old_pc: u16 = reg.pc;                                //store the old program counter to compare against later
+        let old_pc: u16 = reg.pc; //store the old program counter to compare against later
         let offset: u8 = bus::read(memory, reg.pc); //read the next byte to get the offset
         reg.pc += 1;
 
-        if offset < 127                                          //if the byte is positive, move PC forward that many bytes
+        if offset < 127
+        //if the byte is positive, move PC forward that many bytes
         {
             reg.pc += offset as u16;
-        }
-        else            //if the byte is negative, invert all the bits of the offset to convert it to positive again and then subtract from the PC
+        } else
+        //if the byte is negative, invert all the bits of the offset to convert it to positive again and then subtract from the PC
         {
             reg.pc -= (offset ^ 0xff) as u16 + 1;
         }
 
-        if old_pc & 0x100 != reg.pc & 0x100                     //use another cycle if we crossed a page boundary
+        if old_pc & 0x100 != reg.pc & 0x100
+        //use another cycle if we crossed a page boundary
         {
             reg.cycles_used += 1;
         }
 
-        if reg.debug_text { println!("Branching from address {:#06x} to {:#06x}...", old_pc, reg.pc) }
-    }
-    else               //if the flag is false then just increment the program counter and do nothing else
+        if reg.debug_text {
+            println!(
+                "Branching from address {:#06x} to {:#06x}...",
+                old_pc, reg.pc
+            )
+        }
+    } else
+    //if the flag is false then just increment the program counter and do nothing else
     {
         reg.pc += 1;
 
-        if reg.debug_text { println!("Branch condition evaluated but not taken.") }
+        if reg.debug_text {
+            println!("Branch condition evaluated but not taken.")
+        }
     }
 }
 
-
-pub fn cmp(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: u16)
-{
+pub fn cmp(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: u16) {
     let byte: u8 = bus::read(memory, i_addr);
 
     reg.set_carry(reg.a >= byte);
@@ -73,9 +82,7 @@ pub fn cmp(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: u16)
     reg.cycles_used += cycles
 }
 
-
-pub fn cpx(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: u16)
-{
+pub fn cpx(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: u16) {
     let byte: u8 = bus::read(memory, i_addr);
 
     reg.set_carry(reg.x >= byte);
@@ -85,9 +92,7 @@ pub fn cpx(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: u16)
     reg.cycles_used += cycles
 }
 
-
-pub fn cpy(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: u16)
-{
+pub fn cpy(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: u16) {
     let byte: u8 = bus::read(memory, i_addr);
 
     reg.set_carry(reg.y >= byte);
@@ -97,9 +102,7 @@ pub fn cpy(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: u16)
     reg.cycles_used += cycles
 }
 
-
-pub fn dec(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: u16)
-{
+pub fn dec(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: u16) {
     let mut byte: u8 = bus::read(memory, i_addr);
 
     byte = byte.wrapping_sub(1);
@@ -112,9 +115,7 @@ pub fn dec(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: u16)
     reg.cycles_used += cycles
 }
 
-
-pub fn inc(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: u16)
-{
+pub fn inc(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: u16) {
     let mut byte: u8 = bus::read(memory, i_addr);
 
     byte = byte.wrapping_add(1);
@@ -127,19 +128,17 @@ pub fn inc(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: u16)
     reg.cycles_used += cycles
 }
 
-
-pub fn jmp(reg: &mut CpuStatus, cycles: u8, i_addr: u16)
-{
+pub fn jmp(reg: &mut CpuStatus, cycles: u8, i_addr: u16) {
     reg.pc = i_addr;
 
     reg.cycles_used += cycles;
 
-    if reg.debug_text {println!("JMP to new address {:#06x}...", reg.pc)}
+    if reg.debug_text {
+        println!("JMP to new address {:#06x}...", reg.pc)
+    }
 }
 
-
-pub fn jsr(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: u16)
-{
+pub fn jsr(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: u16) {
     let return_addr: u16 = reg.pc - 1;
     let return_byte_lo: u8 = (return_addr & 0xff) as u8;
     let return_byte_hi: u8 = ((return_addr & 0xff00) >> 8) as u8;
@@ -151,12 +150,12 @@ pub fn jsr(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: u16)
 
     reg.cycles_used += cycles;
 
-    if reg.debug_text {println!("JSR to new address {:#06x}...", reg.pc)}
+    if reg.debug_text {
+        println!("JSR to new address {:#06x}...", reg.pc)
+    }
 }
 
-
-pub fn lda(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: u16)
-{
+pub fn lda(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: u16) {
     let byte: u8;
     byte = bus::read(memory, i_addr);
 
@@ -168,9 +167,7 @@ pub fn lda(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: u16)
     reg.cycles_used += cycles
 }
 
-
-pub fn ldx(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: u16)
-{
+pub fn ldx(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: u16) {
     let byte: u8;
     byte = bus::read(memory, i_addr);
 
@@ -182,9 +179,7 @@ pub fn ldx(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: u16)
     reg.cycles_used += cycles
 }
 
-
-pub fn ldy(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: u16)
-{
+pub fn ldy(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: u16) {
     let byte: u8;
     byte = bus::read(memory, i_addr);
 
@@ -196,9 +191,7 @@ pub fn ldy(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: u16)
     reg.cycles_used += cycles
 }
 
-
-pub fn rts(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8)
-{
+pub fn rts(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8) {
     let return_byte_lo: u8 = bus::pull_stack(memory, reg);
     let return_byte_hi: u8 = bus::pull_stack(memory, reg);
 
@@ -207,38 +200,30 @@ pub fn rts(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8)
     reg.cycles_used += cycles
 }
 
-
-pub fn sta(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: u16)
-{
+pub fn sta(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: u16) {
     bus::write(memory, i_addr, reg.a);
 
     reg.cycles_used += cycles
 }
 
-
-pub fn stx(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: u16)
-{
+pub fn stx(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: u16) {
     bus::write(memory, i_addr, reg.x);
 
     reg.cycles_used += cycles
 }
 
-
-pub fn sty(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: u16)
-{
+pub fn sty(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: u16) {
     bus::write(memory, i_addr, reg.y);
 
     reg.cycles_used += cycles
 }
 
-
-pub fn lsr(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: Option<u16>)
-{
+pub fn lsr(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: Option<u16>) {
     let mut byte: u8;
 
     match i_addr {
         Some(v) => byte = bus::read(memory, v),
-        None => byte = reg.a
+        None => byte = reg.a,
     };
 
     reg.set_carry(0b1 & byte != 0);
@@ -249,8 +234,40 @@ pub fn lsr(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: Opti
 
     match i_addr {
         Some(v) => bus::write(memory, v, byte),
-        None => reg.a = byte
+        None => reg.a = byte,
     };
 
     reg.cycles_used += cycles;
+}
+
+pub fn transfer(reg: &mut CpuStatus, origin: char, destination: char) {
+    let val: u8;
+
+    match origin {
+        'a' => val = reg.a,
+        'x' => val = reg.x,
+        'y' => val = reg.y,
+        _ => {
+            if reg.debug_text {
+                println!("Invalid origin argument to op::transfer \n");
+            }
+            val = 0;
+        }
+    };
+
+    match destination {
+        'a' => reg.a = val,
+        'x' => reg.x = val,
+        'y' => reg.y = val,
+        _ => {
+            if reg.debug_text {
+                println!("Invalid destination argument to op::transfer \n")
+            }
+        }
+    };
+
+    reg.set_negative(val > 0x7f);
+    reg.set_zero(0 == val);
+
+    reg.cycles_used += 2;
 }

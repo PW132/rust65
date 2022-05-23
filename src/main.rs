@@ -134,6 +134,7 @@ fn main() {
                 },
                 Event::Window { win_event: WindowEvent::FocusGained, .. } => video_subsystem.text_input().start(),
                 Event::Window { win_event: WindowEvent::FocusLost, .. } => video_subsystem.text_input().stop(),
+                Event::KeyDown { keycode: Some(Keycode::Return), .. } => i_char = Some(0xd),
                 Event::TextInput { text: t, .. } => i_char = Some(t.as_bytes()[0]),
                 _ => ()
             }
