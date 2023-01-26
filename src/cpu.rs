@@ -217,6 +217,14 @@ pub fn execute<'a>(memory: &mut [Segment], reg: &'a mut CpuStatus) -> Result<u8,
 
 
         //Exclusive OR
+        0x49 => {op::eor(memory, reg, 2, reg.pc); reg.pc += 1}, //EOR Immediate
+        0x45 => {addr = bus::zp(memory, reg); op::eor(memory, reg, 3, addr)}, //EOR ZP
+        0x55 => {addr = bus::zp_x(memory, reg); op::eor(memory, reg, 4, addr)}, //EOR ZP,X
+        0x4d => {addr = bus::absolute(memory, reg); op::eor(memory, reg, 4, addr)}, //EOR Absolute
+        0x5d => {addr = bus::absolute_x(memory, reg, true); op::eor(memory, reg, 4, addr)}, //EOR Absolute,X
+        0x59 => {addr = bus::absolute_y(memory, reg, true); op::eor(memory, reg, 4, addr)}, //EOR Absolute,Y
+        0x41 => {addr = bus::indirect_x(memory, reg); op::eor(memory, reg, 4, addr)}, //EOR Indirect,X
+        0x51 => {addr = bus::indirect_y(memory, reg, true); op::eor(memory, reg, 4, addr)}, //EOR Indirect,Y
 
 
         //Increment Memory
@@ -244,7 +252,7 @@ pub fn execute<'a>(memory: &mut [Segment], reg: &'a mut CpuStatus) -> Result<u8,
 
 
         //Load A
-        0xa9 => {op::lda(memory, reg, 2, reg.pc); reg.pc += 1;}, //LDA Immediate
+        0xa9 => {op::lda(memory, reg, 2, reg.pc); reg.pc += 1}, //LDA Immediate
         0xa5 => {addr = bus::zp(memory, reg); op::lda(memory, reg, 3, addr)}, //LDA ZP
         0xb5 => {addr = bus::zp_x(memory, reg); op::lda(memory, reg, 4, addr)}, //LDA ZP,X
         0xad => {addr = bus::absolute(memory, reg); op::lda(memory, reg, 4, addr)}, //LDA Absolute
@@ -255,7 +263,7 @@ pub fn execute<'a>(memory: &mut [Segment], reg: &'a mut CpuStatus) -> Result<u8,
 
 
         //Load X
-        0xa2 => {op::ldx(memory, reg, 2, reg.pc); reg.pc += 1;}, //LDX Immediate
+        0xa2 => {op::ldx(memory, reg, 2, reg.pc); reg.pc += 1}, //LDX Immediate
         0xa6 => {addr = bus::zp(memory, reg); op::ldx(memory, reg, 3, addr)}, //LDX ZP
         0xb6 => {addr = bus::zp_y(memory, reg); op::ldx(memory, reg, 4, addr)}, //LDX ZP,Y
         0xae => {addr = bus::absolute(memory, reg); op::ldx(memory, reg, 4, addr)}, //LDX Absolute
@@ -263,7 +271,7 @@ pub fn execute<'a>(memory: &mut [Segment], reg: &'a mut CpuStatus) -> Result<u8,
 
 
         //Load Y
-        0xa0 => {op::ldy(memory, reg, 2, reg.pc); reg.pc += 1;}, //LDY Immediate
+        0xa0 => {op::ldy(memory, reg, 2, reg.pc); reg.pc += 1}, //LDY Immediate
         0xa4 => {addr = bus::zp(memory, reg); op::ldy(memory, reg, 3, addr)}, //LDY ZP
         0xb4 => {addr = bus::zp_x(memory, reg); op::ldy(memory, reg, 4, addr)}, //LDY ZP,X
         0xac => {addr = bus::absolute(memory, reg); op::ldy(memory, reg, 4, addr)}, //LDY Absolute
@@ -271,7 +279,7 @@ pub fn execute<'a>(memory: &mut [Segment], reg: &'a mut CpuStatus) -> Result<u8,
 
 
         //Logical Shift Right
-        0x4a => {op::lsr(memory, reg, 2, None); reg.pc += 1;}, //LSR A
+        0x4a => {op::lsr(memory, reg, 2, None); reg.pc += 1}, //LSR A
         0x46 => {addr = bus::zp(memory, reg); op::lsr(memory, reg, 5, Some(addr))}, //LSR ZP
         0x56 => {addr = bus::zp_x(memory, reg); op::lsr(memory, reg, 6, Some(addr))}, //LSR ZP,X
         0x4e => {addr = bus::absolute(memory, reg); op::lsr(memory, reg, 6, Some(addr))}, //LSR Absolute
@@ -336,10 +344,10 @@ pub fn execute<'a>(memory: &mut [Segment], reg: &'a mut CpuStatus) -> Result<u8,
 
 
         //Transfer Register Value
-        0xaa => {op::transfer(reg, 'a', 'x'); reg.pc += 1;}, //TAX
-        0xa8 => {op::transfer(reg, 'a', 'y'); reg.pc += 1;}, //TAY
-        0x8a => {op::transfer(reg, 'x', 'a'); reg.pc += 1;}, //TXA
-        0x98 => {op::transfer(reg, 'y', 'a'); reg.pc += 1;}, //TYA
+        0xaa => {op::transfer(reg, 'a', 'x'); reg.pc += 1}, //TAX
+        0xa8 => {op::transfer(reg, 'a', 'y'); reg.pc += 1}, //TAY
+        0x8a => {op::transfer(reg, 'x', 'a'); reg.pc += 1}, //TXA
+        0x98 => {op::transfer(reg, 'y', 'a'); reg.pc += 1}, //TYA
 
 
         other => return Err(format!("Unrecognized opcode {:#04x}! Halting execution...", other)) //whoops! invalid opcode

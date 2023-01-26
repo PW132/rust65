@@ -39,12 +39,11 @@ pub fn branch(memory: &mut [Segment], reg: &mut CpuStatus, flag: bool)
         let offset: u8 = bus::read(memory, reg.pc); //read the next byte to get the offset
         reg.pc += 1;
 
-        if offset < 127
-        //if the byte is positive, move PC forward that many bytes
+        if offset < 127 //if the byte is positive, move PC forward that many bytes
         {
             reg.pc += offset as u16;
-        } else
-        //if the byte is negative, invert all the bits of the offset to convert it to positive again and then subtract from the PC
+        } 
+        else //if the byte is negative, invert all the bits of the offset to convert it to positive again and then subtract from the PC
         {
             reg.pc -= (offset ^ 0xff) as u16 + 1;
         }
@@ -111,6 +110,17 @@ pub fn dec(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: u16)
     reg.set_zero(byte == 0);
 
     bus::write(memory, i_addr, byte);
+
+    reg.cycles_used += cycles
+}
+
+pub fn eor(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: u16) {
+    let mut byte: u8 = bus::read(memory, i_addr);
+
+    reg.a = reg.a ^ byte;
+
+    reg.set_negative(reg.a > 0x7f);
+    reg.set_zero(reg.a == 0);
 
     reg.cycles_used += cycles
 }
