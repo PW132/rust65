@@ -307,8 +307,8 @@ pub fn execute<'a>(memory: &mut [Segment], reg: &'a mut CpuStatus) -> Result<u8,
 
 
         //Stack Instructions
-        0x9a => {reg.cycles_used += 2; reg.sp = reg.x}, //TXS
-        0xba => {reg.cycles_used += 2; reg.x = reg.sp}, //TSX
+        0x9a => {op::transfer(reg, 'x', 's')}, //TXS
+        0xba => {op::transfer(reg, 's', 'x')}, //TSX
         0x48 => {reg.cycles_used += 3; bus::push_stack(memory, reg, reg.a)}, //PHA
         0x68 => {reg.cycles_used += 4; reg.a = bus::pull_stack(memory, reg)},     //PLA
         0x08 => {reg.cycles_used += 3; bus::push_stack(memory, reg, reg.sr)},//PHP
@@ -344,10 +344,10 @@ pub fn execute<'a>(memory: &mut [Segment], reg: &'a mut CpuStatus) -> Result<u8,
 
 
         //Transfer Register Value
-        0xaa => {op::transfer(reg, 'a', 'x'); reg.pc += 1}, //TAX
-        0xa8 => {op::transfer(reg, 'a', 'y'); reg.pc += 1}, //TAY
-        0x8a => {op::transfer(reg, 'x', 'a'); reg.pc += 1}, //TXA
-        0x98 => {op::transfer(reg, 'y', 'a'); reg.pc += 1}, //TYA
+        0xaa => {op::transfer(reg, 'a', 'x')}, //TAX
+        0xa8 => {op::transfer(reg, 'a', 'y')}, //TAY
+        0x8a => {op::transfer(reg, 'x', 'a')}, //TXA
+        0x98 => {op::transfer(reg, 'y', 'a')}, //TYA
 
 
         other => return Err(format!("Unrecognized opcode {:#04x}! Halting execution...", other)) //whoops! invalid opcode

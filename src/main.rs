@@ -27,22 +27,6 @@ use sdl2::video::{Window, WindowContext};
 
 use text_io::{try_scan, read};
 
-#[inline]
-fn render_screen(screen: &mut Canvas<Window>, texture_creator: &TextureCreator<WindowContext>, terminal_buf: &Vec<u8>, font: &Font)
-{
-    screen.clear();
-
-    let text = font.render(&String::from_utf8_lossy(&terminal_buf))
-        .blended_wrapped(Color::RGB(255, 255, 255), 640);
-    if text.is_ok()
-    {
-        let text_texture = text.unwrap().as_texture(&texture_creator).unwrap();
-        let text_dimensions = text_texture.query();
-        screen.copy(&text_texture, None, Some(Rect::new(0,0,text_dimensions.width,text_dimensions.height)));
-    }
-
-    screen.present();
-}
 
 fn main() {
     println!("Starting emulator...");
@@ -160,11 +144,11 @@ fn main() {
                 if nm65.debug_text {println!("Instruction used {} cycles...", cycles_just_used)};   //instruction, add them to a running total
                 cycle_total += i32::from(cycles_just_used);
 
-                if cycle_total > 10                                                              //if we've used 10,000 cycles (10ms at 1MHz)
+                if cycle_total > (1000000/1200)                                                     //should we update peripherals this frame?
                 {
                     cycle_total = 0;                                                                //reset count
                     terminal::pia(memory, &mut terminal_buf, &mut i_char);                                       //update the peripherals (keyboard, display)
-                    render_screen(&mut screen, &texture_creator, &terminal_buf, &font);
+                    terminal::render_screen(&mut screen, &texture_creator, &terminal_buf, &font);
                 }
 
                 //sleep for the amount of time dictated by cycles taken and the CPU speed
@@ -202,7 +186,7 @@ fn main() {
                         let cycles_taken: u8 = check.unwrap();
                         if nm65.debug_text {println!("Instruction used {} cycles...", cycles_taken)};
                         terminal::pia(memory, &mut terminal_buf, &mut i_char);
-                        render_screen(&mut screen, &texture_creator, &terminal_buf, &font);
+                        terminal::render_screen(&mut screen, &texture_creator, &terminal_buf, &font);
                     }
     
                     cpu::status_report(&nm65); 

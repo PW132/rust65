@@ -238,7 +238,7 @@ pub fn push_stack(memory: &mut [Segment], reg: &mut CpuStatus, data: u8)
         print!("Pushing {:#04x} onto stack... ", data)
     }
 
-    reg.sp = reg.sp.wrapping_sub(1);
+    reg.sp = reg.sp.wrapping_add(1);
 
     if reg.debug_text {
         if reg.sp == 0 {
@@ -259,10 +259,10 @@ pub fn pull_stack(memory: &mut [Segment], reg: &mut CpuStatus) -> u8 //pull a by
         print!("Pulling {:#04x} from stack... ", pulled)
     }
 
-    reg.sp = reg.sp.wrapping_add(1);
+    reg.sp = reg.sp.wrapping_sub(1);
 
     if reg.debug_text {
-        if reg.sp == 0 {
+        if reg.sp == 0xff {
             println!("stack underflow!")
         } else {
             println!("pull succeeded")

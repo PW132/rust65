@@ -257,6 +257,7 @@ pub fn transfer(reg: &mut CpuStatus, origin: char, destination: char) {
         'a' => val = reg.a,
         'x' => val = reg.x,
         'y' => val = reg.y,
+        's' => val = reg.sp,
         _ => {
             if reg.debug_text {
                 println!("Invalid origin argument to op::transfer \n");
@@ -269,6 +270,7 @@ pub fn transfer(reg: &mut CpuStatus, origin: char, destination: char) {
         'a' => reg.a = val,
         'x' => reg.x = val,
         'y' => reg.y = val,
+        's' => reg.sp = val,
         _ => {
             if reg.debug_text {
                 println!("Invalid destination argument to op::transfer \n")
