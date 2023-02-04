@@ -15,6 +15,28 @@ pub fn and(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: u16)
     reg.cycles_used += cycles;
 }
 
+pub fn asl(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: Option<u16>) {
+    let mut byte: u8;
+
+    match i_addr {
+        Some(v) => byte = bus::read(memory, v),
+        None => byte = reg.a,
+    };
+
+    reg.set_carry(0 != byte & 0b10000000);
+
+    byte <<= 1;
+    reg.set_negative(byte > 0x7f);
+    reg.set_zero(byte == 0);
+
+    match i_addr {
+        Some(v) => bus::write(memory, v, byte),
+        None => reg.a = byte,
+    };
+
+    reg.cycles_used += cycles;
+}
+
 pub fn bit(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: u16) {
     let byte: u8 = bus::read(memory, i_addr);
 
