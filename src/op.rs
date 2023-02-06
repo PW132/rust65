@@ -280,12 +280,7 @@ pub fn transfer(reg: &mut CpuStatus, origin: char, destination: char) {
         'x' => val = reg.x,
         'y' => val = reg.y,
         's' => val = reg.sp,
-        _ => {
-            if reg.debug_text {
-                println!("Invalid origin argument to op::transfer \n");
-            }
-            val = 0;
-        }
+        _ => panic!("Invalid origin argument to op::transfer \n")
     };
 
     match destination {
@@ -293,11 +288,7 @@ pub fn transfer(reg: &mut CpuStatus, origin: char, destination: char) {
         'x' => reg.x = val,
         'y' => reg.y = val,
         's' => reg.sp = val,
-        _ => {
-            if reg.debug_text {
-                println!("Invalid destination argument to op::transfer \n")
-            }
-        }
+        _ => panic!("Invalid destination argument to op::transfer \n")
     };
 
     reg.set_negative(val > 0x7f);

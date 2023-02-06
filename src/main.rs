@@ -25,8 +25,6 @@
    use sdl2::ttf::Font;
    use sdl2::video::{Window, WindowContext};
    
-   use text_io::{try_scan, read};
-   
    
    fn main() {
        println!("Starting emulator...");
@@ -63,10 +61,7 @@
    
        let mut nm65 = CpuStatus::new(1000000); //create and initialize registers and other cpu state
    
-   
-       let mut cpu_running: bool = true;
        let mut cycle_total: i32 = 0;
-       let mut last_cmd: String; //the command line buffer
    
        let mut terminal_buf: Vec<u8> = Vec::new();
        let mut i_char: Option<u8> = None;
@@ -112,7 +107,7 @@
                    Event::Quit {..} => return,
                    Event::KeyDown { keycode: Some(Keycode::Escape), .. } => 
                    {
-                       cpu_running = false; 
+                       nm65.running = false; 
                        print!("Emulation paused, dropping into monitor \n>");
                        stdout().flush();
                    },
@@ -124,7 +119,7 @@
                }
            }
    
-           if cpu_running //if true, let's run 6502 code
+           if nm65.running //if true, let's run 6502 code
            {
                let now = time::Instant::now();
                let check: Result<u8, String> = nm65.execute(memory); //execute an instruction, check for errors
@@ -133,7 +128,7 @@
                {
                    println!("{}",check.unwrap_err());
                    nm65.status_report();
-                   cpu_running = false;                                        //stop running if something goes wrong
+                   nm65.running = false;                                        //stop running if something goes wrong
    
                    print!(">");
                    stdout().flush();
@@ -166,37 +161,11 @@
    
            else        //CPU is paused, drop into interactive monitor
            {   
-               last_cmd = read!("{}\n");       //get text input and store it whole
-               
-               match last_cmd.trim()           //check for single-word commands with no arguments
-               {
-                   "verbose" => nm65.debug_text = !nm65.debug_text, //enable or disable debug commentary
-                   "run" => cpu_running = true,                     //run command: start running code
-                   "reset" => nm65.reset = true,                    //reset command: reset the CPU
-                   "status" => nm65.status_report(),      //status command: get status of registers
-   
-                   "step" =>                                        //step command: run a single operation and display results
-                   {   let check: Result<u8, String> = nm65.execute(memory);
-                       if check.is_err()
-                       {
-                           println!("{}",check.unwrap_err());
-                       }
-                       else 
-                       {
-                           let cycles_taken: u8 = check.unwrap();
-                           if nm65.debug_text {println!("Instruction used {} cycles...", cycles_taken)};
-                           terminal::pia(memory, &mut terminal_buf, &mut i_char);
-                           terminal::render_screen(&mut screen, &texture_creator, &terminal_buf, &font);
-                       }
-       
-                       nm65.status_report(); 
-                   },
-   
-                   "exit" => return,                                //exit command: close emulator
-                   _ => println!("What?")
-               }
-               print!(">");
-               stdout().flush();
+                let continue_loop: bool = nm65.debug_mode(memory);
+                if !continue_loop { return }
+
+                terminal::pia(memory, &mut terminal_buf, &mut i_char);
+                terminal::render_screen(&mut screen, &texture_creator, &terminal_buf, &font);
            }
        }
    }

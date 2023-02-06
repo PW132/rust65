@@ -1,6 +1,9 @@
 use crate::bus;
 use crate::bus::Segment;
 use crate::op;
+
+use text_io::{try_scan, read};
+use std::io::{Read, Error, ErrorKind, Write, stdout};
 pub struct CpuStatus //contains the registers of the CPU, the clock speed, and other settings.
 {
     pub a: u8,
@@ -13,7 +16,8 @@ pub struct CpuStatus //contains the registers of the CPU, the clock speed, and o
     pub cycles_used: u8,
     pub reset: bool,
     pub debug_text: bool,
-    pub clock_time: u64
+    pub clock_time: u64,
+    pub running: bool
 }
 
 
@@ -21,7 +25,7 @@ impl CpuStatus
 {
     pub fn new(speed: u64) -> CpuStatus
     {
-        CpuStatus {a:0, x:0, y:0, pc:0xfffc, sr:0b00100100, sp:0, last_op: 0, cycles_used: 0, reset: true, debug_text: false, clock_time: (1000000000 / speed)}
+        CpuStatus {a:0, x:0, y:0, pc:0xfffc, sr:0b00100100, sp:0, last_op: 0, cycles_used: 0, reset: true, debug_text: false, clock_time: (1000000000 / speed), running: true}
     }
 
 
@@ -357,4 +361,77 @@ impl CpuStatus
 
         Ok(self.cycles_used)
     }
+
+    
+   pub fn debug_mode(&mut self, memory: &mut [Segment]) -> bool
+   {
+        let last_cmd: String = read!("{}\n");       //get text input and store it whole
+
+        let poke = CpuStatus::parse_poke(&last_cmd);
+        let peek = CpuStatus::parse_peek(&last_cmd);
+
+        if (poke.is_ok())
+        {
+            let poke_t = poke.unwrap();
+            bus::write(memory, poke_t.0, poke_t.1);
+            println!("Wrote {:#04x} to address {:#06x}", poke_t.1, poke_t.0);
+        }
+        else if (peek.is_ok())
+        {
+            let peek_a = peek.unwrap();
+            let peek_b = bus::read(memory,peek_a);
+            println!("Read {:#04x} from address {:#06x}", peek_b, peek_a);
+        }
+        else
+        {
+            match last_cmd.trim()           //check for single-word commands with no arguments
+            {
+                "verbose" => self.debug_text = !self.debug_text, //enable or disable debug commentary
+                "run" => self.running = true,                     //run command: start running code
+                "reset" => self.reset = true,                    //reset command: reset the CPU
+                "status" => self.status_report(),      //status command: get status of registers
+    
+                "step" =>                                        //step command: run a single operation and display results
+                {   let check: Result<u8, String> = self.execute(memory);
+                    if check.is_err()
+                    {
+                        println!("{}",check.unwrap_err());
+                    }
+                    else 
+                    {
+                        let cycles_taken: u8 = check.unwrap();
+                        if self.debug_text {println!("Instruction used {} cycles...", cycles_taken)};
+                    }
+    
+                    self.status_report(); 
+                },
+    
+                "exit" => return false,                                //exit command: close emulator
+                _ => println!("What?")
+            }
+        }
+        
+        print!(">");
+        stdout().flush();
+        return true;
+   }
+
+   fn parse_peek(cmd: &String) -> Result<u16, Box<dyn std::error::Error>>
+   {
+        let addr: u16;
+
+        try_scan!(cmd.trim().bytes() => "{}", addr);
+
+        Ok(addr)
+   }
+
+   fn parse_poke(cmd: &String) -> Result<(u16, u8), Box<dyn std::error::Error>>
+   {
+        let addr: u16;
+        let byte: u8;
+
+        try_scan!(cmd.trim().bytes() => "{}:{}", addr, byte);
+
+        Ok((addr, byte))
+   } 
 }
