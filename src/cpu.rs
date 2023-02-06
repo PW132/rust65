@@ -143,16 +143,24 @@ impl CpuStatus
         match opcode            //which instruction is it?
         {
             //Add With Carry
+            0x69 => {op::adc(memory, self, 2, self.pc); self.pc += 1}, //ADC Immediate
+            0x65 => {addr = bus::zp(memory, self); op::adc(memory, self, 2, addr)}, //ADC ZP
+            0x75 => {addr = bus::zp_x(memory, self); op::adc(memory, self, 2, addr)}, //ADC ZP,X
+            0x6d => {addr = bus::absolute(memory, self); op::adc(memory, self, 2, addr)}, //ADC Absolute
+            0x7d => {addr = bus::absolute_x(memory, self, true); op::adc(memory, self, 2, addr)}, //ADC Absolute,X
+            0x79 => {addr = bus::absolute_y(memory, self, true); op::adc(memory, self, 2, addr)}, //ADC Absolute,Y
+            0x61 => {addr = bus::indirect_x(memory, self); op::adc(memory, self, 2, addr)}, //ADC Indirect,X
+            0x71 => {addr = bus::indirect_y(memory, self, true); op::adc(memory, self, 2, addr)}, //ADC Indirect,Y
 
             //And Bitwise with Accumulator
-            0x29 => {{op::and(memory, self, 2, self.pc); self.pc += 1}}, //AND Immediate
-            0x25 => {addr = bus::zp(memory, self); op::and(memory, self, 3, addr);}, //AND ZP
-            0x35 => {addr = bus::zp_x(memory, self); op::and(memory, self, 4, addr);}, //AND ZP,X
-            0x2d => {addr = bus::absolute(memory, self); op::and(memory, self, 4, addr);}, //AND Absolute
-            0x3d => {addr = bus::absolute_x(memory, self, true); op::and(memory, self, 4, addr);}, //AND Absolute,X
-            0x39 => {addr = bus::absolute_y(memory, self, true); op::and(memory, self, 4, addr);}, //AND Absolute,Y
-            0x21 => {addr = bus::indirect_x(memory, self); op::and(memory, self, 6, addr);}, //AND Indirect,X
-            0x31 => {addr = bus::indirect_y(memory, self, true); op::and(memory, self, 5, addr);}, //AND Indirect,Y
+            0x29 => {op::and(memory, self, 2, self.pc); self.pc += 1}, //AND Immediate
+            0x25 => {addr = bus::zp(memory, self); op::and(memory, self, 3, addr)}, //AND ZP
+            0x35 => {addr = bus::zp_x(memory, self); op::and(memory, self, 4, addr)}, //AND ZP,X
+            0x2d => {addr = bus::absolute(memory, self); op::and(memory, self, 4, addr)}, //AND Absolute
+            0x3d => {addr = bus::absolute_x(memory, self, true); op::and(memory, self, 4, addr)}, //AND Absolute,X
+            0x39 => {addr = bus::absolute_y(memory, self, true); op::and(memory, self, 4, addr)}, //AND Absolute,Y
+            0x21 => {addr = bus::indirect_x(memory, self); op::and(memory, self, 6, addr)}, //AND Indirect,X
+            0x31 => {addr = bus::indirect_y(memory, self, true); op::and(memory, self, 5, addr)}, //AND Indirect,Y
 
             //Arithmetic Shift Left
             0x0a => {op::asl(memory, self, 2, None)}, //ASL A
@@ -162,8 +170,8 @@ impl CpuStatus
             0x1e => {addr = bus::absolute_x(memory, self, true); op::asl(memory, self, 7, Some(addr))}, //ASL Absolute,X
 
             //Bit Test
-            0x24 => {addr = bus::zp(memory, self); op::bit(memory, self, 3, addr);}, // BIT ZP
-            0x2c => {addr = bus::absolute(memory, self); op::bit(memory, self, 4, addr);}, // BIT Absolute
+            0x24 => {addr = bus::zp(memory, self); op::bit(memory, self, 3, addr)}, // BIT ZP
+            0x2c => {addr = bus::absolute(memory, self); op::bit(memory, self, 4, addr)}, // BIT Absolute
 
             //Branch Instructions
             0x10 => {flag = !self.negative_flag(); op::branch(memory, self, flag)}, //BPL Branch on PLus
@@ -186,8 +194,8 @@ impl CpuStatus
 
             //Compare with Accumulator
             0xc9 => {op::cmp(memory, self, 2, self.pc); self.pc += 1}, //CMP Immediate
-            0xc5 => {addr = bus::zp(memory, self); op::cmp(memory, self, 3, addr);}, //CMP ZP
-            0xd5 => {addr = bus::zp_x(memory, self); op::cmp(memory, self, 4, addr);}, //CMP ZP,X
+            0xc5 => {addr = bus::zp(memory, self); op::cmp(memory, self, 3, addr)}, //CMP ZP
+            0xd5 => {addr = bus::zp_x(memory, self); op::cmp(memory, self, 4, addr)}, //CMP ZP,X
             0xcd => {addr = bus::absolute(memory, self); op::cmp(memory, self, 4, addr)}, //CMP Absolute
             0xdd => {addr = bus::absolute_x(memory, self, true); op::cmp(memory, self, 4, addr)}, //CMP Absolute,X
             0xd9 => {addr = bus::absolute_y(memory, self, true); op::cmp(memory, self, 4, addr)}, //CMP Absolute,Y
@@ -197,14 +205,14 @@ impl CpuStatus
 
             //Compare with X
             0xe0 => {op::cpx(memory, self, 2, self.pc); self.pc += 1}, //CPX Immediate
-            0xe4 => {addr = bus::zp(memory, self); op::cpx(memory, self, 3, addr);}, //CPX ZP
-            0xec => {addr = bus::absolute(memory, self); op::cpx(memory, self, 4, addr);}, //CPX Absolute
+            0xe4 => {addr = bus::zp(memory, self); op::cpx(memory, self, 3, addr)}, //CPX ZP
+            0xec => {addr = bus::absolute(memory, self); op::cpx(memory, self, 4, addr)}, //CPX Absolute
 
 
             //Compare with Y
             0xc0 => {op::cpy(memory, self, 2, self.pc); self.pc += 1}, //CPY Immediate
-            0xc4 => {addr = bus::zp(memory, self); op::cpy(memory, self, 3, addr);}, //CPY ZP
-            0xcc => {addr = bus::absolute(memory, self); op::cpy(memory, self, 4, addr);}, //CPY Absolute
+            0xc4 => {addr = bus::zp(memory, self); op::cpy(memory, self, 3, addr)}, //CPY ZP
+            0xcc => {addr = bus::absolute(memory, self); op::cpy(memory, self, 4, addr)}, //CPY Absolute
 
 
             //Decrement Memory
@@ -215,11 +223,11 @@ impl CpuStatus
 
 
             //Decrement X
-            0xca => {self.x = self.x.wrapping_sub(1); self.set_zero(self.x == 0); self.set_negative(self.x > 0x7f); self.cycles_used += 2;}, //DEX
+            0xca => {self.x = self.x.wrapping_sub(1); self.set_zero(self.x == 0); self.set_negative(self.x > 0x7f); self.cycles_used += 2}, //DEX
 
 
             //Decrement Y
-            0x88 => {self.y = self.y.wrapping_sub(1); self.set_zero(self.y == 0); self.set_negative(self.y > 0x7f);  self.cycles_used += 2;}, //DEY
+            0x88 => {self.y = self.y.wrapping_sub(1); self.set_zero(self.y == 0); self.set_negative(self.y > 0x7f);  self.cycles_used += 2}, //DEY
 
 
             //Exclusive OR
@@ -241,11 +249,11 @@ impl CpuStatus
 
 
             //Increment X
-            0xe8 => {self.x = self.x.wrapping_add(1); self.set_zero(self.x == 0); self.set_negative(self.x > 0x7f);  self.cycles_used += 2;}, //INX
+            0xe8 => {self.x = self.x.wrapping_add(1); self.set_zero(self.x == 0); self.set_negative(self.x > 0x7f);  self.cycles_used += 2}, //INX
 
 
             //Increment Y
-            0xc8 => {self.y = self.y.wrapping_add(1); self.set_zero(self.y == 0); self.set_negative(self.y > 0x7f);  self.cycles_used += 2;}, //INY
+            0xc8 => {self.y = self.y.wrapping_add(1); self.set_zero(self.y == 0); self.set_negative(self.y > 0x7f);  self.cycles_used += 2}, //INY
 
 
             //Jump
@@ -310,6 +318,14 @@ impl CpuStatus
 
 
             //Subtract with Carry
+            0xe9 => {op::sbc(memory, self, 2, self.pc); self.pc += 1}, //SBC Immediate
+            0xe5 => {addr = bus::zp(memory, self); op::sbc(memory, self, 2, addr)}, //SBC ZP
+            0xf5 => {addr = bus::zp_x(memory, self); op::sbc(memory, self, 2, addr)}, //SBC ZP,X
+            0xed => {addr = bus::absolute(memory, self); op::sbc(memory, self, 2, addr)}, //SBC Absolute
+            0xfd => {addr = bus::absolute_x(memory, self, true); op::sbc(memory, self, 2, addr)}, //SBC Absolute,X
+            0xf9 => {addr = bus::absolute_y(memory, self, true); op::sbc(memory, self, 2, addr)}, //SBC Absolute,Y
+            0xe1 => {addr = bus::indirect_x(memory, self); op::sbc(memory, self, 2, addr)}, //SBC Indirect,X
+            0xf1 => {addr = bus::indirect_y(memory, self, true); op::sbc(memory, self, 2, addr)}, //SBC Indirect,Y
 
 
             //Stack Instructions

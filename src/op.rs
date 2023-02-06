@@ -5,7 +5,37 @@ use crate::bus::Segment;
 use crate::cpu;
 use crate::cpu::CpuStatus;
 
-pub fn and(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: u16) {
+pub fn adc(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: u16) 
+{
+    let byte: u8 = bus::read(memory, i_addr);
+
+    let mut result: u8;
+    match reg.decimal_flag()
+    {
+        true =>
+        {
+            if reg.debug_text {println!("Attempted to ADC in decimal mode! This is not implemented!")};
+            result = reg.a;
+        }
+        false =>
+        {
+            result = reg.a.wrapping_add(byte);
+            if reg.carry_flag() { result = result.wrapping_add(1) }
+        }
+    }
+
+    reg.set_carry(result < reg.a);
+    reg.set_overflow(result & 0b10000000 == reg.a & 0b10000000);
+    reg.set_zero(result == 0);
+    reg.set_negative(result > 0x7f);
+
+    reg.a = result;
+
+    reg.cycles_used += cycles;
+}
+
+pub fn and(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: u16) 
+{
     let byte: u8 = bus::read(memory, i_addr);
 
     reg.a &= byte;
@@ -15,7 +45,8 @@ pub fn and(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: u16)
     reg.cycles_used += cycles;
 }
 
-pub fn asl(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: Option<u16>) {
+pub fn asl(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: Option<u16>) 
+{
     let mut byte: u8;
 
     match i_addr {
@@ -37,7 +68,8 @@ pub fn asl(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: Opti
     reg.cycles_used += cycles;
 }
 
-pub fn bit(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: u16) {
+pub fn bit(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: u16) 
+{
     let byte: u8 = bus::read(memory, i_addr);
 
     reg.set_negative(0 != byte & 0b10000000);
@@ -93,7 +125,8 @@ pub fn branch(memory: &mut [Segment], reg: &mut CpuStatus, flag: bool)
     }
 }
 
-pub fn cmp(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: u16) {
+pub fn cmp(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: u16) 
+{
     let byte: u8 = bus::read(memory, i_addr);
 
     reg.set_carry(reg.a >= byte);
@@ -103,7 +136,8 @@ pub fn cmp(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: u16)
     reg.cycles_used += cycles
 }
 
-pub fn cpx(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: u16) {
+pub fn cpx(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: u16) 
+{
     let byte: u8 = bus::read(memory, i_addr);
 
     reg.set_carry(reg.x >= byte);
@@ -113,7 +147,8 @@ pub fn cpx(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: u16)
     reg.cycles_used += cycles
 }
 
-pub fn cpy(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: u16) {
+pub fn cpy(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: u16) 
+{
     let byte: u8 = bus::read(memory, i_addr);
 
     reg.set_carry(reg.y >= byte);
@@ -123,7 +158,8 @@ pub fn cpy(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: u16)
     reg.cycles_used += cycles
 }
 
-pub fn dec(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: u16) {
+pub fn dec(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: u16) 
+{
     let mut byte: u8 = bus::read(memory, i_addr);
 
     byte = byte.wrapping_sub(1);
@@ -136,7 +172,8 @@ pub fn dec(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: u16)
     reg.cycles_used += cycles
 }
 
-pub fn eor(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: u16) {
+pub fn eor(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: u16) 
+{
     let mut byte: u8 = bus::read(memory, i_addr);
 
     reg.a = reg.a ^ byte;
@@ -147,7 +184,8 @@ pub fn eor(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: u16)
     reg.cycles_used += cycles
 }
 
-pub fn inc(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: u16) {
+pub fn inc(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: u16) 
+{
     let mut byte: u8 = bus::read(memory, i_addr);
 
     byte = byte.wrapping_add(1);
@@ -160,7 +198,8 @@ pub fn inc(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: u16)
     reg.cycles_used += cycles
 }
 
-pub fn jmp(reg: &mut CpuStatus, cycles: u8, i_addr: u16) {
+pub fn jmp(reg: &mut CpuStatus, cycles: u8, i_addr: u16) 
+{
     reg.pc = i_addr;
 
     reg.cycles_used += cycles;
@@ -170,7 +209,8 @@ pub fn jmp(reg: &mut CpuStatus, cycles: u8, i_addr: u16) {
     }
 }
 
-pub fn jsr(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: u16) {
+pub fn jsr(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: u16) 
+{
     let return_addr: u16 = reg.pc - 1;
     let return_byte_lo: u8 = (return_addr & 0xff) as u8;
     let return_byte_hi: u8 = ((return_addr & 0xff00) >> 8) as u8;
@@ -187,7 +227,8 @@ pub fn jsr(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: u16)
     }
 }
 
-pub fn lda(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: u16) {
+pub fn lda(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: u16) 
+{
     let byte: u8;
     byte = bus::read(memory, i_addr);
 
@@ -199,7 +240,8 @@ pub fn lda(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: u16)
     reg.cycles_used += cycles
 }
 
-pub fn ldx(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: u16) {
+pub fn ldx(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: u16) 
+{
     let byte: u8;
     byte = bus::read(memory, i_addr);
 
@@ -211,7 +253,8 @@ pub fn ldx(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: u16)
     reg.cycles_used += cycles
 }
 
-pub fn ldy(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: u16) {
+pub fn ldy(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: u16) 
+{
     let byte: u8;
     byte = bus::read(memory, i_addr);
 
@@ -223,7 +266,8 @@ pub fn ldy(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: u16)
     reg.cycles_used += cycles
 }
 
-pub fn rts(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8) {
+pub fn rts(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8) 
+{
     let return_byte_lo: u8 = bus::pull_stack(memory, reg);
     let return_byte_hi: u8 = bus::pull_stack(memory, reg);
 
@@ -232,25 +276,58 @@ pub fn rts(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8) {
     reg.cycles_used += cycles
 }
 
-pub fn sta(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: u16) {
+pub fn sbc(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: u16) 
+{
+    let byte: u8 = bus::read(memory, i_addr);
+
+    let mut result: u8;
+    match reg.decimal_flag()
+    {
+        true =>
+        {
+            if reg.debug_text {println!("Attempted to SBC in decimal mode! This is not implemented!")};
+            result = reg.a;
+        }
+        false =>
+        {
+            result = reg.a.wrapping_sub(byte);
+            if reg.carry_flag() { result = result.wrapping_sub(1) }
+        }
+    }
+
+    reg.set_carry(result > reg.a);
+    reg.set_overflow(result & 0b10000000 == reg.a & 0b10000000);
+    reg.set_zero(result == 0);
+    reg.set_negative(result > 0x7f);
+
+    reg.a = result;
+
+    reg.cycles_used += cycles;
+}
+
+pub fn sta(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: u16) 
+{
     bus::write(memory, i_addr, reg.a);
 
     reg.cycles_used += cycles
 }
 
-pub fn stx(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: u16) {
+pub fn stx(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: u16) 
+{
     bus::write(memory, i_addr, reg.x);
 
     reg.cycles_used += cycles
 }
 
-pub fn sty(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: u16) {
+pub fn sty(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: u16) 
+{
     bus::write(memory, i_addr, reg.y);
 
     reg.cycles_used += cycles
 }
 
-pub fn lsr(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: Option<u16>) {
+pub fn lsr(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: Option<u16>) 
+{
     let mut byte: u8;
 
     match i_addr {
@@ -272,7 +349,8 @@ pub fn lsr(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: Opti
     reg.cycles_used += cycles;
 }
 
-pub fn transfer(reg: &mut CpuStatus, origin: char, destination: char) {
+pub fn transfer(reg: &mut CpuStatus, origin: char, destination: char) 
+{
     let val: u8;
 
     match origin {

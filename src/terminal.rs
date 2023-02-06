@@ -28,12 +28,12 @@ pub fn pia(memory: &mut [Segment], buf: &mut Vec<u8>, input: &mut Option<u8>) {
             out_char = 0xa;
         } //convert any Carriage Returns to Line Feeds
 
-        buf.push(out_char.to_ascii_uppercase()); //add converted character to the text buffer
+        buf.push(out_char); //add converted character to the text buffer
         memory[IN].data[DSP] &= !0b10000000; //clear bit 7 to let woz monitor know we got the byte
     }
 
     if input.is_some() {
-        memory[IN].data[KBD] = input.unwrap() | 0b10000000;
+        memory[IN].data[KBD] = input.unwrap().to_ascii_uppercase() | 0b10000000;
         *input = None;
 
         memory[IN].data[KBDCR] |= 0b10000000;
