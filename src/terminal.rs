@@ -11,6 +11,8 @@ use sdl2::render::{Canvas, TextureCreator};
 use sdl2::ttf::Font;
 use sdl2::video::{Window, WindowContext};
 
+use std::collections::VecDeque;
+
 const KBD: usize = 0;
 const KBDCR: usize = 1;
 const DSP: usize = 2;
@@ -19,7 +21,7 @@ const DSPCR: usize = 3;
 const IN: usize = 2;
 const OUT: usize = 3;
 
-pub fn pia(memory: &mut [Segment], buf: &mut Vec<u8>, input: &mut Option<u8>) {
+pub fn pia(memory: &mut [Segment], buf: &mut VecDeque<u8>, input: &mut Option<u8>) {
     if memory[IN].data[DSP] > 127
     //is bit 7 of DSP set?
     {
@@ -28,7 +30,7 @@ pub fn pia(memory: &mut [Segment], buf: &mut Vec<u8>, input: &mut Option<u8>) {
             out_char = 0xa;
         } //convert any Carriage Returns to Line Feeds
 
-        buf.push(out_char); //add converted character to the text buffer
+        buf.push_back(out_char); //add converted character to the text buffer
         memory[IN].data[DSP] &= !0b10000000; //clear bit 7 to let woz monitor know we got the byte
     }
 
@@ -42,12 +44,51 @@ pub fn pia(memory: &mut [Segment], buf: &mut Vec<u8>, input: &mut Option<u8>) {
     return;
 }
 
-pub fn render_screen(screen: &mut Canvas<Window>, texture_creator: &TextureCreator<WindowContext>, terminal_buf: &Vec<u8>, font: &Font)
+pub fn scroll(buf: &mut VecDeque<u8>) 
+{
+    let mut rows_used = 0;
+    let mut characters_in_row = 0;
+
+    for i in 0 .. buf.len()
+    {
+        if buf[i] == 0xa || characters_in_row >= 39
+        {
+            rows_used += 1;
+            characters_in_row = 0
+        }
+        else 
+        {
+            characters_in_row += 1    
+        }
+    }
+
+    //println!("Rows used: {}", rows_used);
+    if rows_used >= 24
+    {
+        characters_in_row = 0;
+
+        while characters_in_row <= 39
+        {
+            let removed_char = buf.pop_front();
+            characters_in_row += 1;
+
+            if removed_char.is_some()
+            {
+                if removed_char.unwrap() == 0xa
+                {
+                    break
+                }
+            }
+        }
+    }
+}
+
+pub fn render_screen(screen: &mut Canvas<Window>, texture_creator: &TextureCreator<WindowContext>, terminal_buf: &mut VecDeque<u8>, font: &Font)
 {
     screen.clear();
 
-    let text = font.render(&String::from_utf8_lossy(&terminal_buf))
-        .blended_wrapped(Color::RGB(255, 255, 255), 640);
+    let text = font.render(&String::from_utf8_lossy(terminal_buf.make_contiguous()))
+        .blended_wrapped(Color::RGB(255, 255, 255), 560);
     if text.is_ok()
     {
         let text_texture = text.unwrap().as_texture(&texture_creator).unwrap();
