@@ -1,9 +1,7 @@
 extern crate sdl2;
 
-use crate::bus;
 use crate::bus::Segment;
 
-use sdl2::keyboard::Keycode;
 use sdl2::pixels::Color;
 use sdl2::event::{Event, WindowEvent};
 use sdl2::rect::Rect;
@@ -21,17 +19,20 @@ const DSPCR: usize = 3;
 const IN: usize = 2;
 const OUT: usize = 3;
 
-pub fn pia(memory: &mut [Segment], buf: &mut VecDeque<u8>, input: &mut Option<u8>) {
-    if memory[IN].data[DSP] > 127
-    //is bit 7 of DSP set?
+pub fn pia(memory: &mut [Segment], buf: &mut VecDeque<u8>, input: &mut Option<u8>) 
+{
+    if memory[IN].data[DSP] > 127   //is bit 7 of DSP set?
     {
-        let mut out_char: u8 = memory[OUT].data[DSP] & !0b10000000; //get byte and convert to valid ASCII
-        if out_char == 0xd {
+        let mut out_char: u8 = memory[OUT].data[DSP] & !0b10000000;     //get byte and convert to valid ASCII
+        if out_char == 0xd                                              //convert any Carriage Returns to Line Feeds
+        { 
             out_char = 0xa;
-        } //convert any Carriage Returns to Line Feeds
+        } 
 
-        buf.push_back(out_char); //add converted character to the text buffer
-        memory[IN].data[DSP] &= !0b10000000; //clear bit 7 to let woz monitor know we got the byte
+        buf.push_back(out_char);                //add converted character to the text buffer
+        memory[IN].data[DSP] &= !0b10000000;    //clear bit 7 to let woz monitor know we got the byte
+
+        scroll(buf);
     }
 
     if input.is_some() {
@@ -44,12 +45,12 @@ pub fn pia(memory: &mut [Segment], buf: &mut VecDeque<u8>, input: &mut Option<u8
     return;
 }
 
-pub fn scroll(buf: &mut VecDeque<u8>) 
+pub fn scroll(buf: &mut VecDeque<u8>) //handle scrolling the display if the buffer is full
 {
     let mut rows_used = 0;
     let mut characters_in_row = 0;
 
-    for i in 0 .. buf.len()
+    for i in 0 .. buf.len() //start by measuring how many lines of text have been used, by going through the buffer looking for wraps and newlines
     {
         if buf[i] == 0xa || characters_in_row >= 39
         {
@@ -62,8 +63,7 @@ pub fn scroll(buf: &mut VecDeque<u8>)
         }
     }
 
-    //println!("Rows used: {}", rows_used);
-    if rows_used >= 24
+    if rows_used >= 24 //if the screen is about to fill completely, then delete all of the first line, finishing at a wrap or newline
     {
         characters_in_row = 0;
 

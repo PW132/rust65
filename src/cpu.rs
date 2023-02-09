@@ -293,11 +293,22 @@ impl CpuStatus
 
 
             //Logical Shift Right
-            0x4a => {op::lsr(memory, self, 2, None); self.pc += 1}, //LSR A
+            0x4a => {op::lsr(memory, self, 2, None)}, //LSR A
             0x46 => {addr = bus::zp(memory, self); op::lsr(memory, self, 5, Some(addr))}, //LSR ZP
             0x56 => {addr = bus::zp_x(memory, self); op::lsr(memory, self, 6, Some(addr))}, //LSR ZP,X
             0x4e => {addr = bus::absolute(memory, self); op::lsr(memory, self, 6, Some(addr))}, //LSR Absolute
             0x5e => {addr = bus::absolute_x(memory, self, false); op::lsr(memory, self, 7, Some(addr))}, //LSR Absolute,X
+
+
+            //OR with Accumulator
+            0x09 => {op::ora(memory, self, 2, self.pc); self.pc += 1}, //ORA Immediate
+            0x05 => {addr = bus::zp(memory, self); op::ora(memory, self, 3, addr)}, //ORA ZP
+            0x15 => {addr = bus::zp_x(memory, self); op::ora(memory, self, 4, addr)}, //ORA ZP,X
+            0x0d => {addr = bus::absolute(memory, self); op::ora(memory, self, 4, addr)}, //ORA Absolute
+            0x1d => {addr = bus::absolute_x(memory, self, true); op::ora(memory, self, 4, addr)}, //ORA Absolute,X
+            0x19 => {addr = bus::absolute_y(memory, self, true); op::ora(memory, self, 4, addr)}, //ORA Absolute,Y
+            0x01 => {addr = bus::indirect_x(memory, self); op::ora(memory, self, 4, addr)}, //ORA Indirect,X
+            0x11 => {addr = bus::indirect_y(memory, self, true); op::ora(memory, self, 4, addr)}, //ORA Indirect,Y
 
 
             //No Operation
@@ -305,9 +316,19 @@ impl CpuStatus
 
 
             //Rotate Left
+            0x2a => {op::rol(memory, self, 2, None)}, //ROL A
+            0x26 => {addr = bus::zp(memory, self); op::rol(memory, self, 5, Some(addr))}, //ROL ZP
+            0x36 => {addr = bus::zp_x(memory, self); op::rol(memory, self, 6, Some(addr))}, //ROL ZP,X
+            0x2e => {addr = bus::absolute(memory, self); op::rol(memory, self, 6, Some(addr))}, //ROL Absolute
+            0x3e => {addr = bus::absolute_x(memory, self, true); op::rol(memory, self, 7, Some(addr))}, //ROL Absolute,X
 
 
             //Rotate Right
+            0x6a => {op::ror(memory, self, 2, None)}, //ROR A
+            0x66 => {addr = bus::zp(memory, self); op::ror(memory, self, 5, Some(addr))}, //ROR ZP
+            0x76 => {addr = bus::zp_x(memory, self); op::ror(memory, self, 6, Some(addr))}, //ROR ZP,X
+            0x6e => {addr = bus::absolute(memory, self); op::ror(memory, self, 6, Some(addr))}, //ROR Absolute
+            0x7e => {addr = bus::absolute_x(memory, self, true); op::ror(memory, self, 7, Some(addr))}, //ROR Absolute,X
 
 
             //Return from Interrupt

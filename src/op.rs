@@ -1,8 +1,5 @@
-use std::string;
-
 use crate::bus;
 use crate::bus::Segment;
-use crate::cpu;
 use crate::cpu::CpuStatus;
 
 pub fn adc(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: u16) 
@@ -39,10 +36,11 @@ pub fn and(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: u16)
     let byte: u8 = bus::read(memory, i_addr);
 
     reg.a &= byte;
+
     reg.set_negative(reg.a > 0x7f);
     reg.set_zero(reg.a == 0);
 
-    reg.cycles_used += cycles;
+    reg.cycles_used += cycles
 }
 
 pub fn asl(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: Option<u16>) 
@@ -174,9 +172,9 @@ pub fn dec(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: u16)
 
 pub fn eor(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: u16) 
 {
-    let mut byte: u8 = bus::read(memory, i_addr);
+    let byte: u8 = bus::read(memory, i_addr);
 
-    reg.a = reg.a ^ byte;
+    reg.a ^= byte;
 
     reg.set_negative(reg.a > 0x7f);
     reg.set_zero(reg.a == 0);
@@ -266,6 +264,95 @@ pub fn ldy(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: u16)
     reg.cycles_used += cycles
 }
 
+pub fn lsr(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: Option<u16>) 
+{
+    let mut byte: u8;
+
+    match i_addr {
+        Some(v) => byte = bus::read(memory, v),
+        None => byte = reg.a,
+    };
+
+    reg.set_carry(0 != byte & 0b1);
+
+    byte >>= 1;
+    reg.set_negative(false);
+    reg.set_zero(byte == 0);
+
+    match i_addr {
+        Some(v) => bus::write(memory, v, byte),
+        None => reg.a = byte,
+    };
+
+    reg.cycles_used += cycles;
+}
+
+pub fn ora(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: u16) 
+{
+    let byte: u8 = bus::read(memory, i_addr);
+
+    reg.a |= byte;
+
+    reg.set_negative(reg.a > 0x7f);
+    reg.set_zero(reg.a == 0);
+
+    reg.cycles_used += cycles
+}
+
+pub fn rol(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: Option<u16>) 
+{
+    let mut byte: u8;
+
+    match i_addr {
+        Some(v) => byte = bus::read(memory, v),
+        None => byte = reg.a,
+    };
+
+    let new_carry = 0 != byte & 0b10000000;
+
+    byte <<= 1;
+
+    if reg.carry_flag() { byte |= 0b1 }
+
+    reg.set_carry(new_carry);
+    reg.set_negative(byte > 0x7f);
+    reg.set_zero(byte == 0);
+
+    match i_addr {
+        Some(v) => bus::write(memory, v, byte),
+        None => reg.a = byte,
+    };
+
+    reg.cycles_used += cycles;
+}
+
+pub fn ror(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: Option<u16>) 
+{
+    let mut byte: u8;
+
+    match i_addr {
+        Some(v) => byte = bus::read(memory, v),
+        None => byte = reg.a,
+    };
+
+    let new_carry = 0 != byte & 0b1;
+
+    byte >>= 1;
+
+    if reg.carry_flag() { byte |= 0b10000000 }
+
+    reg.set_carry(new_carry);
+    reg.set_negative(byte > 0x7f);
+    reg.set_zero(byte == 0);
+
+    match i_addr {
+        Some(v) => bus::write(memory, v, byte),
+        None => reg.a = byte,
+    };
+
+    reg.cycles_used += cycles;
+}
+
 pub fn rts(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8) 
 {
     let return_byte_lo: u8 = bus::pull_stack(memory, reg);
@@ -324,29 +411,6 @@ pub fn sty(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: u16)
     bus::write(memory, i_addr, reg.y);
 
     reg.cycles_used += cycles
-}
-
-pub fn lsr(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: Option<u16>) 
-{
-    let mut byte: u8;
-
-    match i_addr {
-        Some(v) => byte = bus::read(memory, v),
-        None => byte = reg.a,
-    };
-
-    reg.set_carry(0b1 & byte != 0);
-
-    byte >>= 1;
-    reg.set_negative(byte > 0x7f);
-    reg.set_zero(byte == 0);
-
-    match i_addr {
-        Some(v) => bus::write(memory, v, byte),
-        None => reg.a = byte,
-    };
-
-    reg.cycles_used += cycles;
 }
 
 pub fn transfer(reg: &mut CpuStatus, origin: char, destination: char) 

@@ -1,5 +1,5 @@
 /* Rust65: an example 6502 system emulator in Rust
-Written by Peter Worthington, 2021 */
+Written by Peter Worthington, 2023 */
 
 mod bus;
 mod cpu;
@@ -21,8 +21,6 @@ use std::collections::VecDeque;
 use sdl2::keyboard::Keycode;
 use sdl2::pixels::Color;
 use sdl2::event::{Event, WindowEvent};
-use sdl2::render::{Canvas, TextureCreator};
-use sdl2::video::{Window, WindowContext};
 
 
 fn main() {
@@ -142,7 +140,6 @@ fn main() {
                 {
                     cycle_total = 0;                                                                //reset count
                     terminal::pia(memory, &mut terminal_buf, &mut i_char);                                       //update the peripherals (keyboard, display)
-                    terminal::scroll(&mut terminal_buf);
                     terminal::render_screen(&mut screen, &texture_creator, &mut terminal_buf, &font);
                 }
 
