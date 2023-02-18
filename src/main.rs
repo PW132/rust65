@@ -26,7 +26,7 @@ use sdl2::event::{Event, WindowEvent};
 fn main() {
     println!("Starting emulator...");
 
-    let rom_path = Path::new("applesoft-lite-0.4.bin"); //read ROM file and keep resident in an array
+    let rom_path = Path::new("6502.rom.bin"); //read ROM file and keep resident in an array
     let mut rom_file = match File::open(rom_path) 
     {
         Err(why) => panic!("couldn't open {}: {}", rom_path.display(), why),

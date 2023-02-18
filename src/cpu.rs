@@ -407,13 +407,13 @@ impl CpuStatus
         let poke = CpuStatus::parse_poke(&last_cmd);
         let peek = CpuStatus::parse_peek(&last_cmd);
 
-        if (poke.is_ok())
+        if poke.is_ok()
         {
             let poke_t = poke.unwrap();
             bus::write(memory, poke_t.0, poke_t.1);
             println!("Wrote {:#04x} to address {:#06x}", poke_t.1, poke_t.0);
         }
-        else if (peek.is_ok())
+        else if peek.is_ok()
         {
             let peek_a = peek.unwrap();
             let peek_b = bus::read(memory,peek_a);

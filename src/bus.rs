@@ -29,7 +29,7 @@ pub fn absolute(memspace: &mut [Segment], reg: &mut CpuStatus) -> u16 //Absolute
 {
     let lo_byte: u8;
     let hi_byte: u8;
-    let mut o_addr: u16 = 0;
+    let o_addr: u16;
 
     lo_byte = read(memspace, reg.pc);
     reg.pc += 1;
@@ -45,7 +45,7 @@ pub fn absolute_x(memspace: &mut [Segment], reg: &mut CpuStatus, wrap_check: boo
 {
     let lo_byte: u8;
     let hi_byte: u8;
-    let mut addr: u16 = 0;
+    let addr: u16;
     let o_addr: u16;
 
     lo_byte = read(memspace, reg.pc);
@@ -55,7 +55,7 @@ pub fn absolute_x(memspace: &mut [Segment], reg: &mut CpuStatus, wrap_check: boo
 
     addr = ((hi_byte as u16) << 8) + lo_byte as u16;
 
-    o_addr = addr + reg.x as u16;
+    o_addr = addr.wrapping_add(reg.x as u16);
 
     if addr & 0x100 != o_addr & 0x100 && wrap_check {
         reg.cycles_used += 1;
@@ -68,7 +68,7 @@ pub fn absolute_y(memspace: &mut [Segment], reg: &mut CpuStatus, wrap_check: boo
 {
     let lo_byte: u8;
     let hi_byte: u8;
-    let mut addr: u16 = 0;
+    let addr: u16;
     let o_addr: u16;
 
     lo_byte = read(memspace, reg.pc);
@@ -78,7 +78,7 @@ pub fn absolute_y(memspace: &mut [Segment], reg: &mut CpuStatus, wrap_check: boo
 
     addr = ((hi_byte as u16) << 8) + lo_byte as u16;
 
-    o_addr = addr + reg.y as u16;
+    o_addr = addr.wrapping_add(reg.y as u16);
 
     if addr & 0x100 != o_addr & 0x100 && wrap_check {
         reg.cycles_used += 1;
@@ -122,22 +122,21 @@ pub fn indirect(memspace: &mut [Segment], reg: &mut CpuStatus) -> u16 //indirect
     let lo_byte: u8;
     let hi_byte: u8;
 
-    let mut i_addr: u16 = 0;
-    let mut i_addr2: u16 = 0;
-    let mut o_addr: u16 = 0;
+    let mut i_addr: u16;
+    let mut i_addr2: u16;
+    let mut o_addr: u16;
 
     lo_byte = read(memspace, reg.pc);
     reg.pc += 1;
     hi_byte = read(memspace, reg.pc);
     reg.pc += 1;
 
-    i_addr += hi_byte as u16;
-    i_addr <<= 8;
+    i_addr = (hi_byte as u16) << 8;
     i_addr2 = i_addr;
     i_addr += lo_byte as u16;
     i_addr2 += lo_byte.wrapping_add(1) as u16; //We use wrapping_add here to mimic the NMOS 6502 bug where indirect jumps don't work right at page boundaries
 
-    o_addr += read(memspace, i_addr) as u16;
+    o_addr = read(memspace, i_addr) as u16;
     o_addr += (read(memspace, i_addr2) as u16) << 8;
 
     return o_addr;
@@ -149,16 +148,14 @@ pub fn indirect_x(memspace: &mut [Segment], reg: &mut CpuStatus) -> u16 //Indire
     let lo_byte: u8;
     let hi_byte: u8;
 
-    let mut o_addr: u16 = 0;
+    let o_addr: u16;
 
     zp_addr = read(memspace, reg.pc).wrapping_add(reg.x);
     reg.pc += 1;
     lo_byte = read(memspace, zp_addr as u16);
-    hi_byte = read(memspace, zp_addr as u16 + 1);
+    hi_byte = read(memspace, (zp_addr as u16).wrapping_add(1));
 
-    o_addr += hi_byte as u16;
-    o_addr <<= 8;
-    o_addr += lo_byte as u16;
+    o_addr = ((hi_byte as u16) << 8) + lo_byte as u16;
 
     return o_addr;
 }
@@ -170,16 +167,14 @@ pub fn indirect_y(memspace: &mut [Segment], reg: &mut CpuStatus, wrap_check: boo
     let hi_byte: u8;
 
     let mut i_addr: u16 = 0;
-    let mut o_addr: u16 = 0;
+    let o_addr: u16;
 
     zp_addr = read(memspace, reg.pc);
     reg.pc += 1;
     lo_byte = read(memspace, zp_addr as u16);
-    hi_byte = read(memspace, zp_addr as u16 + 1);
+    hi_byte = read(memspace, (zp_addr as u16).wrapping_add(1));
 
-    i_addr += hi_byte as u16;
-    i_addr <<= 8;
-    i_addr += lo_byte as u16;
+    i_addr += ((hi_byte as u16) << 8) + lo_byte as u16;
 
     o_addr = i_addr.wrapping_add(reg.y as u16);
 

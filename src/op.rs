@@ -22,7 +22,7 @@ pub fn adc(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: u16)
     }
 
     reg.set_carry(result < reg.a);
-    reg.set_overflow(result & 0b10000000 == reg.a & 0b10000000);
+    reg.set_overflow((byte & 0x80 == reg.a & 0x80) && (result & 0x80 != byte & 0x80));
     reg.set_zero(result == 0);
     reg.set_negative(result > 0x7f);
 
@@ -383,7 +383,7 @@ pub fn sbc(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: u16)
     }
 
     reg.set_carry(result > reg.a);
-    reg.set_overflow(result & 0b10000000 == reg.a & 0b10000000);
+    reg.set_overflow((byte & 0x80 == reg.a & 0x80) && (result & 0x80 != byte & 0x80));
     reg.set_zero(result == 0);
     reg.set_negative(result > 0x7f);
 
@@ -433,8 +433,10 @@ pub fn transfer(reg: &mut CpuStatus, origin: char, destination: char)
         _ => panic!("Invalid destination argument to op::transfer \n")
     };
 
+    reg.cycles_used += 2;
+
+    if destination == 's' { return }
+
     reg.set_negative(val > 0x7f);
     reg.set_zero(0 == val);
-
-    reg.cycles_used += 2;
 }
