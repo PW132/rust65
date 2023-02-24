@@ -1,4 +1,5 @@
 use crate::cpu::CpuStatus;
+
 pub struct Segment<'a> {
     pub data: &'a mut [u8],
     pub start_addr: u16,

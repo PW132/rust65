@@ -22,7 +22,6 @@ use std::collections::VecDeque;
 use sdl2::keyboard::Keycode;
 use sdl2::pixels::Color;
 use sdl2::event::{Event, WindowEvent};
-use sdl2::sys::{SDL_GetClipboardText, SDL_HasClipboardText};
 
 
 fn main() {
@@ -57,10 +56,14 @@ fn main() {
         Segment::new(pia_out, 0xd010, true, false)
     ];
 
+    let clock: u64 = 1000000;
+    let pia_refresh: u64 = clock / 480;                     //The real Apple 1 terminal updated every 16.7 milliseconds. clock / 60 provides a close approximate to the original, diving clock by higher values provides faster print speeds
+    let video_refresh: u64 = 1000000000 / 120;
 
-    let mut nm65 = CpuStatus::new(1000000); //create and initialize registers and other cpu state
+    let mut nm65 = CpuStatus::new(clock); //create and initialize registers and other cpu state
 
-    let mut cycle_total: i32 = 0;
+    let mut cycle_total: u64 = 0;
+    let mut frame_time: time::Duration = time::Duration::ZERO;
 
     let mut terminal_buf: VecDeque<u8> = VecDeque::new();
     let mut i_char: Option<char> = None;
@@ -131,7 +134,7 @@ fn main() {
 
         if nm65.running //if true, let's run 6502 code
         {
-            let now = time::Instant::now();
+            let instruction_time = time::Instant::now();
             let check: Result<u8, String> = nm65.execute(memory); //execute an instruction, check for errors
 
             if check.is_err()
@@ -147,9 +150,9 @@ fn main() {
             {
                 let cycles_just_used: u8 = check.unwrap();                                          //count cycles used by the completed
                 if nm65.debug_text {println!("Instruction used {} cycles...", cycles_just_used)};   //instruction, add them to a running total
-                cycle_total += i32::from(cycles_just_used);
+                cycle_total += u64::from(cycles_just_used);
 
-                if cycle_total > (1000000/1200)                                                     //should we update peripherals this frame?
+                if cycle_total > pia_refresh                                                    //should we update peripherals this frame?
                 {
 
                     if pasting && !printing
@@ -164,18 +167,25 @@ fn main() {
 
                     cycle_total = 0;                                                                //reset count
                     printing = terminal::pia(memory, &mut terminal_buf, &mut i_char);                                       //update the peripherals (keyboard, display)
-                    terminal::render_screen(&mut screen, &texture_creator, &mut terminal_buf, &font);
                 }
 
                 //sleep for the amount of time dictated by cycles taken and the CPU speed
 
                 let mut wait_time = time::Duration::from_nanos(cycles_just_used as u64 * nm65.clock_time);
-                let spent_time = now.elapsed();
+                let spent_time = instruction_time.elapsed();
                 
                 if wait_time > spent_time
                 {
                     wait_time -= spent_time; 
                     spin_sleep::sleep(wait_time); 
+                }
+
+                frame_time += spent_time + wait_time;
+
+                if frame_time >= time::Duration::from_nanos(video_refresh)
+                {
+                    terminal::render_screen(&mut screen, &texture_creator, &mut terminal_buf, &font);
+                    frame_time = time::Duration::ZERO;
                 }
             }
         }
