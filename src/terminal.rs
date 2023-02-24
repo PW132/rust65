@@ -19,8 +19,10 @@ const DSPCR: usize = 3;
 const IN: usize = 2;
 const OUT: usize = 3;
 
-pub fn pia(memory: &mut [Segment], buf: &mut VecDeque<u8>, input: &mut Option<u8>) 
+pub fn pia(memory: &mut [Segment], buf: &mut VecDeque<u8>, input: &mut Option<char>) -> bool
 {
+    let mut printed: bool = false;
+
     if memory[IN].data[DSP] > 127   //is bit 7 of DSP set?
     {
         let mut out_char: u8 = memory[OUT].data[DSP] & !0b10000000;     //get byte and convert to valid ASCII
@@ -33,16 +35,18 @@ pub fn pia(memory: &mut [Segment], buf: &mut VecDeque<u8>, input: &mut Option<u8
         memory[IN].data[DSP] &= !0b10000000;    //clear bit 7 to let woz monitor know we got the byte
 
         scroll(buf);
+
+        printed = true;
     }
 
     if input.is_some() {
-        memory[IN].data[KBD] = input.unwrap().to_ascii_uppercase() | 0b10000000;
+        memory[IN].data[KBD] = input.unwrap().to_ascii_uppercase() as u8 | 0b10000000;
         *input = None;
 
         memory[IN].data[KBDCR] |= 0b10000000;
     }
 
-    return;
+    return printed;
 }
 
 pub fn scroll(buf: &mut VecDeque<u8>) //handle scrolling the display if the buffer is full
@@ -74,10 +78,7 @@ pub fn scroll(buf: &mut VecDeque<u8>) //handle scrolling the display if the buff
 
             if removed_char.is_some()
             {
-                if removed_char.unwrap() == 0xa
-                {
-                    break
-                }
+                if removed_char.unwrap() == 0xa { break; }
             }
         }
     }

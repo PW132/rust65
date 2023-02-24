@@ -240,6 +240,8 @@ impl CpuStatus
             0x41 => {addr = bus::indirect_x(memory, self); op::eor(memory, self, 4, addr)}, //EOR Indirect,X
             0x51 => {addr = bus::indirect_y(memory, self, true); op::eor(memory, self, 4, addr)}, //EOR Indirect,Y
 
+            //Halt (invalid opcodes that would freeze the CPU on a real NMOS 6502)
+            0x02 | 0x12 | 0x22 | 0x32 | 0x42 | 0x52 | 0x62 | 0x72 | 0x92 | 0xb2 | 0xd2 | 0xf2 => return Err(format!("Illegal (JAM/HLT/KIL) opcode {:#04x}! Halting execution...", self.last_op)),
 
             //Increment Memory
             0xe6 => {addr = bus::zp(memory, self); op::inc(memory, self, 5, addr)}, //INC ZP
@@ -350,12 +352,12 @@ impl CpuStatus
 
 
             //Stack Instructions
-            0x9a => {op::transfer(self, 'x', 's')}, //TXS
-            0xba => {op::transfer(self, 's', 'x')}, //TSX
+            0x9a => {self.cycles_used += 2; op::transfer(self, 'x', 's')}, //TXS
+            0xba => {self.cycles_used += 2; op::transfer(self, 's', 'x')}, //TSX
             0x48 => {self.cycles_used += 3; bus::push_stack(memory, self, self.a)}, //PHA
             0x68 => {self.cycles_used += 4; self.a = bus::pull_stack(memory, self)},     //PLA
-            0x08 => {self.cycles_used += 3; bus::push_stack(memory, self, self.sr)},//PHP
-            0x28 => {self.cycles_used += 4; self.sr = bus::pull_stack(memory, self)},    //PLP
+            0x08 => {self.cycles_used += 3; bus::push_stack(memory, self, self.sr | 0x30)},//PHP
+            0x28 => {self.cycles_used += 4; self.sr = self.sr & 0x30 + (bus::pull_stack(memory, self) & 0xcf)},    //PLP
 
 
             //Set Flag Instructions
@@ -387,10 +389,10 @@ impl CpuStatus
 
 
             //Transfer Register Value
-            0xaa => {op::transfer(self, 'a', 'x')}, //TAX
-            0xa8 => {op::transfer(self, 'a', 'y')}, //TAY
-            0x8a => {op::transfer(self, 'x', 'a')}, //TXA
-            0x98 => {op::transfer(self, 'y', 'a')}, //TYA
+            0xaa => {self.cycles_used += 2; op::transfer(self, 'a', 'x')}, //TAX
+            0xa8 => {self.cycles_used += 2; op::transfer(self, 'a', 'y')}, //TAY
+            0x8a => {self.cycles_used += 2; op::transfer(self, 'x', 'a')}, //TXA
+            0x98 => {self.cycles_used += 2; op::transfer(self, 'y', 'a')}, //TYA
 
 
             other => return Err(format!("Unrecognized opcode {:#04x}! Halting execution...", other)) //whoops! invalid opcode

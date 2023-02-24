@@ -6,7 +6,8 @@ pub fn adc(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: u16)
 {
     let byte: u8 = bus::read(memory, i_addr);
 
-    let mut result: u8;
+    let result: u8;
+
     match reg.decimal_flag()
     {
         true =>
@@ -16,8 +17,7 @@ pub fn adc(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: u16)
         }
         false =>
         {
-            result = reg.a.wrapping_add(byte);
-            if reg.carry_flag() { result = result.wrapping_add(1) }
+            result = reg.a.wrapping_add(byte.wrapping_add(reg.carry_flag() as u8));
         }
     }
 
@@ -28,7 +28,7 @@ pub fn adc(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: u16)
 
     reg.a = result;
 
-    reg.cycles_used += cycles;
+    reg.cycles_used += cycles
 }
 
 pub fn and(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: u16) 
@@ -63,7 +63,7 @@ pub fn asl(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: Opti
         None => reg.a = byte,
     };
 
-    reg.cycles_used += cycles;
+    reg.cycles_used += cycles
 }
 
 pub fn bit(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: u16) 
@@ -74,7 +74,7 @@ pub fn bit(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: u16)
     reg.set_overflow(0 != byte & 0b1000000);
     reg.set_zero(0 == byte & reg.a);
 
-    reg.cycles_used += cycles;
+    reg.cycles_used += cycles
 }
 
 pub fn branch(memory: &mut [Segment], reg: &mut CpuStatus, flag: bool)
@@ -97,7 +97,7 @@ pub fn branch(memory: &mut [Segment], reg: &mut CpuStatus, flag: bool)
         } 
         else //if the byte is negative, invert all the bits of the offset to convert it to positive again and then subtract from the PC
         {
-            reg.pc -= (offset ^ 0xff) as u16 + 1;
+            reg.pc -= !offset as u16 + 1;
         }
 
         if old_pc & 0x100 != reg.pc & 0x100
@@ -284,7 +284,7 @@ pub fn lsr(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: Opti
         None => reg.a = byte,
     };
 
-    reg.cycles_used += cycles;
+    reg.cycles_used += cycles
 }
 
 pub fn ora(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: u16) 
@@ -323,7 +323,7 @@ pub fn rol(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: Opti
         None => reg.a = byte,
     };
 
-    reg.cycles_used += cycles;
+    reg.cycles_used += cycles
 }
 
 pub fn ror(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: Option<u16>) 
@@ -350,7 +350,7 @@ pub fn ror(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: Opti
         None => reg.a = byte,
     };
 
-    reg.cycles_used += cycles;
+    reg.cycles_used += cycles
 }
 
 pub fn rts(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8) 
@@ -365,9 +365,10 @@ pub fn rts(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8)
 
 pub fn sbc(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: u16) 
 {
-    let byte: u8 = bus::read(memory, i_addr);
+    let byte: u8 = !bus::read(memory, i_addr);
 
-    let mut result: u8;
+    let result: u8;
+
     match reg.decimal_flag()
     {
         true =>
@@ -377,19 +378,18 @@ pub fn sbc(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: u16)
         }
         false =>
         {
-            result = reg.a.wrapping_sub(byte);
-            if reg.carry_flag() { result = result.wrapping_sub(1) }
+            result = reg.a.wrapping_add(byte.wrapping_add(reg.carry_flag() as u8));
         }
     }
 
-    reg.set_carry(result > reg.a);
+    reg.set_carry(result < reg.a);
     reg.set_overflow((byte & 0x80 == reg.a & 0x80) && (result & 0x80 != byte & 0x80));
     reg.set_zero(result == 0);
     reg.set_negative(result > 0x7f);
 
     reg.a = result;
 
-    reg.cycles_used += cycles;
+    reg.cycles_used += cycles
 }
 
 pub fn sta(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: u16) 
@@ -435,8 +435,9 @@ pub fn transfer(reg: &mut CpuStatus, origin: char, destination: char)
 
     reg.cycles_used += 2;
 
-    if destination == 's' { return }
-
-    reg.set_negative(val > 0x7f);
-    reg.set_zero(0 == val);
+    if destination != 's'
+    {
+        reg.set_negative(val > 0x7f);
+        reg.set_zero(0 == val);
+    }
 }

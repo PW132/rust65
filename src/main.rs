@@ -15,12 +15,14 @@ use crate::cpu::CpuStatus;
 use std::io::{Read, Error, ErrorKind, Write, stdout};
 use std::fs::File;
 use std::path::Path;
+use std::str::Chars;
 use std::{panic, time};
 use std::collections::VecDeque;
 
 use sdl2::keyboard::Keycode;
 use sdl2::pixels::Color;
 use sdl2::event::{Event, WindowEvent};
+use sdl2::sys::{SDL_GetClipboardText, SDL_HasClipboardText};
 
 
 fn main() {
@@ -61,7 +63,11 @@ fn main() {
     let mut cycle_total: i32 = 0;
 
     let mut terminal_buf: VecDeque<u8> = VecDeque::new();
-    let mut i_char: Option<u8> = None;
+    let mut i_char: Option<char> = None;
+    let mut pasted_text: String = "".to_string();
+    let mut pasted_chars: Chars = pasted_text.chars();
+    let mut pasting: bool = false;
+    let mut printing: bool = false;
 
     //Begin initializing SDL2 window...
 
@@ -110,8 +116,15 @@ fn main() {
                 },
                 Event::Window { win_event: WindowEvent::FocusGained, .. } => video_subsystem.text_input().start(),
                 Event::Window { win_event: WindowEvent::FocusLost, .. } => video_subsystem.text_input().stop(),
-                Event::KeyDown { keycode: Some(Keycode::Return), .. } => i_char = Some(0xd),
-                Event::TextInput { text: t, .. } => i_char = Some(t.as_bytes()[0]),
+                Event::KeyDown { keycode: Some(Keycode::Return), .. } => if !pasting { i_char = Some(0xd as char) },
+                Event::KeyDown { keycode: Some(Keycode::Insert), .. } => 
+                    if video_subsystem.clipboard().has_clipboard_text() 
+                    {
+                        pasted_text = video_subsystem.clipboard().clipboard_text().unwrap();
+                        pasted_chars = pasted_text.chars();
+                        pasting = true;
+                    },
+                Event::TextInput { text: t, .. } => if !pasting { i_char = t.chars().next() },
                 _ => ()
             }
         }
@@ -138,8 +151,19 @@ fn main() {
 
                 if cycle_total > (1000000/1200)                                                     //should we update peripherals this frame?
                 {
+
+                    if pasting && !printing
+                    {
+                        let p_next: Option<char> = pasted_chars.next();
+                        match p_next
+                        {
+                            Some(c) => i_char = Some(c),
+                            None => pasting = false
+                        }
+                    }
+
                     cycle_total = 0;                                                                //reset count
-                    terminal::pia(memory, &mut terminal_buf, &mut i_char);                                       //update the peripherals (keyboard, display)
+                    printing = terminal::pia(memory, &mut terminal_buf, &mut i_char);                                       //update the peripherals (keyboard, display)
                     terminal::render_screen(&mut screen, &texture_creator, &mut terminal_buf, &font);
                 }
 
@@ -161,7 +185,7 @@ fn main() {
             let continue_loop: bool = nm65.debug_mode(memory);
             if !continue_loop { return }
 
-            terminal::pia(memory, &mut terminal_buf, &mut i_char);
+            printing = terminal::pia(memory, &mut terminal_buf, &mut i_char);
             terminal::render_screen(&mut screen, &texture_creator, &mut terminal_buf, &font);
         }
     }
