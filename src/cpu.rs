@@ -375,15 +375,15 @@ impl CpuStatus
 
 
             //Store X
-            0x86 => {addr = bus::zp(memory, self); op::stx(memory, self, 3, addr)}, //STA ZP
-            0x96 => {addr = bus::zp_x(memory, self); op::stx(memory, self, 4, addr)}, //STA ZP,X
-            0x8e => {addr = bus::absolute(memory, self); op::stx(memory, self, 4, addr)}, //STA Absolute
+            0x86 => {addr = bus::zp(memory, self); op::stx(memory, self, 3, addr)}, //STX ZP
+            0x96 => {addr = bus::zp_y(memory, self); op::stx(memory, self, 4, addr)}, //STX ZP,Y
+            0x8e => {addr = bus::absolute(memory, self); op::stx(memory, self, 4, addr)}, //STX Absolute
 
             
             //Store Y
-            0x84 => {addr = bus::zp(memory, self); op::sty(memory, self, 3, addr)}, //STA ZP
-            0x94 => {addr = bus::zp_x(memory, self); op::sty(memory, self, 4, addr)}, //STA ZP,X
-            0x8c => {addr = bus::absolute(memory, self); op::sty(memory, self, 4, addr)}, //STA Absolute
+            0x84 => {addr = bus::zp(memory, self); op::sty(memory, self, 3, addr)}, //STY ZP
+            0x94 => {addr = bus::zp_x(memory, self); op::sty(memory, self, 4, addr)}, //STY ZP,X
+            0x8c => {addr = bus::absolute(memory, self); op::sty(memory, self, 4, addr)}, //STY Absolute
 
 
             //Transfer Register Value
