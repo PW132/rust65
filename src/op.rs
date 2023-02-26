@@ -6,27 +6,64 @@ pub fn adc(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: u16)
 {
     let byte: u8 = bus::read(memory, i_addr);
 
-    let result: u8;
+    let mut result: u16;
 
-    match reg.decimal_flag()
+    match reg.decimal_flag() //is this a BCD operation?
     {
-        true =>
+        true => //BCD add (this implementation is based upon Py6502's version)
         {
-            if reg.debug_text {println!("Attempted to ADC in decimal mode! This is not implemented!")};
-            result = reg.a;
+            let mut half_carry: bool = false;
+            let mut hi_adjust: u8 = 0;
+            let mut lo_adjust: u8 = 0;
+
+            let mut lo_nibble: u8 = (reg.a & 0xf) + (byte & 0xf) + (reg.carry_flag() as u8); //low bits of A + low bits of byte + Carry flag
+            
+            if lo_nibble > 9
+            {
+                lo_adjust = 6;
+                half_carry = true;
+            }
+
+            let mut hi_nibble: u8 = ( (reg.a >> 4) & 0xf ) + ( (byte>> 4) & 0xf ) + (half_carry as u8); //high bits of A + high bits of byte + Carry from low bits result
+
+            reg.set_carry(hi_nibble > 9);
+            if reg.carry_flag()
+            {
+                hi_adjust = 6;
+            }
+
+            //ALU result without decimal adjustments
+            lo_nibble &= 0xf;
+            hi_nibble &= 0xf;
+            let alu_result: u8 = (hi_nibble << 4) + lo_nibble;
+
+            reg.set_zero(alu_result == 0);
+            reg.set_negative(alu_result > 0x7f);
+            reg.set_overflow((byte & 0x80 == reg.a & 0x80) && (alu_result & 0x80 != byte & 0x80));
+
+            //Final A result with adjustment
+            lo_nibble = (lo_nibble + lo_adjust) & 0xf;
+            hi_nibble = (hi_nibble + hi_adjust) & 0xf;
+            result = u16::from((hi_nibble << 4) + lo_nibble);
         }
-        false =>
+        false => //Normal binary add
         {
-            result = reg.a.wrapping_add(byte.wrapping_add(reg.carry_flag() as u8));
+            result = reg.a as u16 + byte as u16 + reg.carry_flag() as u16; // A + Byte + Carry
+
+            reg.set_carry(result > 0xff);
+
+            if reg.carry_flag()
+            {
+                result &= 0xff;
+            }
+
+            reg.set_overflow((byte & 0x80 == reg.a & 0x80) && (result as u8 & 0x80 != byte & 0x80));
+            reg.set_zero(result == 0);
+            reg.set_negative(result > 0x7f);
         }
     }
 
-    reg.set_carry(result < reg.a);
-    reg.set_overflow((byte & 0x80 == reg.a & 0x80) && (result & 0x80 != byte & 0x80));
-    reg.set_zero(result == 0);
-    reg.set_negative(result > 0x7f);
-
-    reg.a = result;
+    reg.a = result as u8;
 
     reg.cycles_used += cycles
 }
@@ -365,29 +402,67 @@ pub fn rts(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8)
 
 pub fn sbc(memory: &mut [Segment], reg: &mut CpuStatus, cycles: u8, i_addr: u16) 
 {
-    let byte: u8 = !bus::read(memory, i_addr);
+    let byte: u8 = bus::read(memory, i_addr); //the only difference between add and subtract is using the inverse of the byte to be added!
+    let c_byte = !byte;
 
-    let result: u8;
+    let mut result: u16;
 
-    match reg.decimal_flag()
+    match reg.decimal_flag() 
     {
-        true =>
+        true => //BCD
         {
-            if reg.debug_text {println!("Attempted to SBC in decimal mode! This is not implemented!")};
-            result = reg.a;
+            let mut half_carry: bool = false;
+            let mut hi_adjust: u8 = 0;
+            let mut lo_adjust: u8 = 0;
+
+            let mut lo_nibble: u8 = (reg.a & 0xf) + (c_byte & 0xf) + (reg.carry_flag() as u8); 
+            
+            if lo_nibble > 9
+            {
+                lo_adjust = 6;
+                half_carry = true;
+            }
+
+            let mut hi_nibble: u8 = ( (reg.a >> 4) & 0xf ) + ( (c_byte>> 4) & 0xf ) + (half_carry as u8); 
+
+            reg.set_carry(hi_nibble > 9);
+            if reg.carry_flag()
+            {
+                hi_adjust = 6;
+            }
+
+            //ALU result without decimal adjustments
+            lo_nibble &= 0xf;
+            hi_nibble &= 0xf;
+            let alu_result: u8 = (hi_nibble << 4) + lo_nibble;
+
+            reg.set_zero(alu_result == 0);
+            reg.set_negative(alu_result > 0x7f);
+            reg.set_overflow((byte & 0x80 == reg.a & 0x80) && (alu_result & 0x80 != byte & 0x80));
+
+            //Final A result with adjustment
+            lo_nibble = (lo_nibble + lo_adjust) & 0xf;
+            hi_nibble = (hi_nibble + hi_adjust) & 0xf;
+            result = u16::from((hi_nibble << 4) + lo_nibble);
         }
-        false =>
+        false => //Normal binary
         {
-            result = reg.a.wrapping_add(byte.wrapping_add(reg.carry_flag() as u8));
+            result = reg.a as u16 + c_byte as u16 + reg.carry_flag() as u16; // A + Byte + Carry
+
+            reg.set_carry(result > 0xff);
+
+            if reg.carry_flag()
+            {
+                result &= 0xff;
+            }
+
+            reg.set_overflow((byte & 0x80 == reg.a & 0x80) && (result as u8 & 0x80 != byte & 0x80));
+            reg.set_zero(result == 0);
+            reg.set_negative(result > 0x7f);
         }
     }
 
-    reg.set_carry(result < reg.a);
-    reg.set_overflow((byte & 0x80 == reg.a & 0x80) && (result & 0x80 != byte & 0x80));
-    reg.set_zero(result == 0);
-    reg.set_negative(result > 0x7f);
-
-    reg.a = result;
+    reg.a = result as u8;
 
     reg.cycles_used += cycles
 }
