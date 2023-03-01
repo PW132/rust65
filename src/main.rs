@@ -3,7 +3,6 @@ Written by Peter Worthington, 2023 */
 
 mod bus;
 mod cpu;
-mod op;
 mod terminal;
 
 extern crate sdl2;
