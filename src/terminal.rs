@@ -23,27 +23,31 @@ pub fn pia(memory: &mut [Segment], buf: &mut VecDeque<u8>, input: &mut Option<ch
 {
     let mut printed: bool = false;
 
-    if memory[IN].data[DSP] > 127   //is bit 7 of DSP set?
+    if memory[IN].data[DSP] > 0x7f   //is bit 7 of DSP set?
     {
-        let mut out_char: u8 = memory[OUT].data[DSP] & !0b10000000;     //get byte and convert to valid ASCII
-        if out_char == 0xd                                              //convert any Carriage Returns to Line Feeds
+        let mut out_char: u8 = memory[OUT].data[DSP] & !0x80;     //get byte and convert to valid ASCII
+        if out_char == 0xd                                        //convert any Carriage Returns to Line Feeds
         { 
             out_char = 0xa;
         } 
 
         buf.push_back(out_char);                //add converted character to the text buffer
-        memory[IN].data[DSP] &= !0b10000000;    //clear bit 7 to let woz monitor know we got the byte
+        memory[IN].data[DSP] &= !0x80;          //clear bit 7 to let woz monitor know we got the byte
 
         scroll(buf);
 
         printed = true;
+
+        //println!("out: {} {}", out_char, out_char as char);
     }
 
     if input.is_some() {
-        memory[IN].data[KBD] = input.unwrap().to_ascii_uppercase() as u8 | 0b10000000;
+        memory[IN].data[KBD] = input.unwrap().to_ascii_uppercase() as u8 | 0x80;
         *input = None;
 
-        memory[IN].data[KBDCR] |= 0b10000000;
+        memory[IN].data[KBDCR] |= 0x80;
+
+        //println!("in: {} {}", memory[IN].data[KBD], memory[IN].data[KBD] as char);
     }
 
     return printed;

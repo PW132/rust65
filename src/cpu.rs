@@ -352,9 +352,9 @@ impl CpuStatus
             0x9a => {self.cycles_used += 2; self.transfer('x', 's')}, //TXS
             0xba => {self.cycles_used += 2; self.transfer('s', 'x')}, //TSX
             0x48 => {self.cycles_used += 3; bus::push_stack(memory, self, self.a)}, //PHA
-            0x68 => {self.cycles_used += 4; self.a = bus::pull_stack(memory, self)},     //PLA
-            0x08 => {self.cycles_used += 3; bus::push_stack(memory, self, self.sr | 0x30)},//PHP
-            0x28 => {self.cycles_used += 4; self.sr = self.sr & 0x30 + (bus::pull_stack(memory, self) & 0xcf)},    //PLP
+            0x68 => {self.cycles_used += 4; self.a = bus::pull_stack(memory, self); self.set_negative(self.a > 0x7f); self.set_zero(self.a == 0)},     //PLA
+            0x08 => {self.cycles_used += 3; bus::push_stack(memory, self, self.sr | 0x30)},                   //PHP
+            0x28 => {self.cycles_used += 4; self.sr = self.sr & 0x30 | (bus::pull_stack(memory, self) & 0xcf)},    //PLP
 
 
             //Set Flag Instructions
