@@ -32,12 +32,12 @@ fn main() {
         Err(why) => panic!("couldn't open {}: {}", rom_path.display(), why),
         Ok(file) => file
     };
-    let mut rom_array: [u8; 0x1fff] = [0; 0x1fff];
+    let mut rom_array: [u8; 0x2000] = [0; 0x2000];
     rom_file.read(&mut rom_array);
     let rom: &mut[u8] = &mut rom_array[..];
 
 
-    let mut dram_array: [u8; 0x7fff] = [0; 0x7fff]; //reserve 32KB of memory address space
+    let mut dram_array: [u8; 0x8000] = [0; 0x8000]; //reserve 32KB of memory address space
     let dram: &mut[u8] = &mut dram_array[..];
 
 

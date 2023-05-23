@@ -16,7 +16,9 @@ pub struct CpuStatus //contains the registers of the CPU, the clock speed, and o
     pub reset: bool,
     pub debug_text: bool,
     pub clock_time: u64,
-    pub running: bool
+    pub running: bool,
+    pub irq: bool,
+    pub nmi: bool
 }
 
 
@@ -24,84 +26,7 @@ impl CpuStatus
 {
     pub fn new(speed: u64) -> CpuStatus
     {
-        CpuStatus {a:0, x:0, y:0, pc:0xfffc, sr:0b00100100, sp:0, last_op: 0, cycles_used: 0, reset: true, debug_text: false, clock_time: (1000000000 / speed), running: true}
-    }
-
-
-    pub fn carry_flag(&mut self) -> bool
-    {
-        return 0 != (self.sr & 0b1)
-    }
-
-    pub fn set_carry(&mut self, flag: bool)
-    {
-        if flag { self.sr |= 0b1 } else { self.sr &= !0b1 }
-    }
-
-
-    pub fn zero_flag(&mut self) -> bool
-    {
-        return 0 != (self.sr & 0b10)
-    }
-
-    pub fn set_zero(&mut self, flag: bool)
-    {
-        if flag { self.sr |= 0b10 } else { self.sr &= !0b10 }
-    }
-
-    
-    pub fn interrupt_flag(&mut self) -> bool
-    {
-        return 0 != (self.sr & 0b100)
-    }
-    
-    pub fn set_interrupt(&mut self, flag: bool)
-    {
-        if flag { self.sr |= 0b100 } else { self.sr &= !0b100 }
-    }
-
-    
-    pub fn decimal_flag(&mut self) -> bool
-    {
-        return 0 != (self.sr & 0b1000)
-    }
-    
-    pub fn set_decimal(&mut self, flag: bool)
-    {
-        if flag { self.sr |= 0b1000 } else { self.sr &= !0b1000 }
-    }
-
-    
-    pub fn break_flag(&mut self) -> bool
-    {
-        return 0 != (self.sr & 0b10000)
-    }
-    
-    pub fn set_break(&mut self, flag: bool)
-    {
-        if flag { self.sr |= 0b10000 } else { self.sr &= !0b10000 }
-    }
-
-    
-    pub fn overflow_flag(&mut self) -> bool
-    {
-        return 0 != (self.sr & 0b1000000)
-    }
-    
-    pub fn set_overflow(&mut self, flag: bool)
-    {
-        if flag { self.sr |= 0b1000000 } else { self.sr &= !0b1000000 }
-    }
-
-    
-    pub fn negative_flag(&mut self) -> bool
-    {
-        return 0 != (self.sr & 0b10000000)
-    }
-    
-    pub fn set_negative(&mut self, flag: bool)
-    {
-        if flag { self.sr |= 0b10000000 } else { self.sr &= !0b10000000 }
+        CpuStatus {a:0, x:0, y:0, pc:0xfffc, sr:0b00100100, sp:0, last_op: 0, cycles_used: 0, reset: true, debug_text: false, clock_time: (1000000000 / speed), running: true, irq: false, nmi: false}
     }
 
     pub fn status_report(&mut self)
@@ -907,7 +832,7 @@ impl CpuStatus
 
                 self.set_zero(alu_result == 0);
                 self.set_negative(alu_result > 0x7f);
-                self.set_overflow((byte & 0x80 == self.a & 0x80) && (alu_result & 0x80 != byte & 0x80));
+                self.set_overflow((c_byte & 0x80 == self.a & 0x80) && (alu_result & 0x80 != c_byte & 0x80));
 
                 //Final A result with adjustment
                 lo_nibble = (lo_nibble + lo_adjust) & 0xf;
@@ -925,7 +850,7 @@ impl CpuStatus
                     result &= 0xff;
                 }
 
-                self.set_overflow((byte & 0x80 == self.a & 0x80) && (result as u8 & 0x80 != byte & 0x80));
+                self.set_overflow((c_byte & 0x80 == self.a & 0x80) && (result as u8 & 0x80 != c_byte & 0x80));
                 self.set_zero(result == 0);
                 self.set_negative(result > 0x7f);
             }
@@ -985,5 +910,83 @@ impl CpuStatus
             self.set_zero(0 == val);
         }
     }
+    
+
+    pub fn carry_flag(&mut self) -> bool
+    {
+        return 0 != (self.sr & 0b1)
+    }
+
+    pub fn set_carry(&mut self, flag: bool)
+    {
+        if flag { self.sr |= 0b1 } else { self.sr &= !0b1 }
+    }
+
+
+    pub fn zero_flag(&mut self) -> bool
+    {
+        return 0 != (self.sr & 0b10)
+    }
+
+    pub fn set_zero(&mut self, flag: bool)
+    {
+        if flag { self.sr |= 0b10 } else { self.sr &= !0b10 }
+    }
+
+    
+    pub fn interrupt_flag(&mut self) -> bool
+    {
+        return 0 != (self.sr & 0b100)
+    }
+    
+    pub fn set_interrupt(&mut self, flag: bool)
+    {
+        if flag { self.sr |= 0b100 } else { self.sr &= !0b100 }
+    }
+
+    
+    pub fn decimal_flag(&mut self) -> bool
+    {
+        return 0 != (self.sr & 0b1000)
+    }
+    
+    pub fn set_decimal(&mut self, flag: bool)
+    {
+        if flag { self.sr |= 0b1000 } else { self.sr &= !0b1000 }
+    }
+
+    
+    pub fn break_flag(&mut self) -> bool
+    {
+        return 0 != (self.sr & 0b10000)
+    }
+    
+    pub fn set_break(&mut self, flag: bool)
+    {
+        if flag { self.sr |= 0b10000 } else { self.sr &= !0b10000 }
+    }
+
+    
+    pub fn overflow_flag(&mut self) -> bool
+    {
+        return 0 != (self.sr & 0b1000000)
+    }
+    
+    pub fn set_overflow(&mut self, flag: bool)
+    {
+        if flag { self.sr |= 0b1000000 } else { self.sr &= !0b1000000 }
+    }
+
+    
+    pub fn negative_flag(&mut self) -> bool
+    {
+        return 0 != (self.sr & 0b10000000)
+    }
+    
+    pub fn set_negative(&mut self, flag: bool)
+    {
+        if flag { self.sr |= 0b10000000 } else { self.sr &= !0b10000000 }
+    }
+
 
 }

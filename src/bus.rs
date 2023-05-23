@@ -15,7 +15,7 @@ impl Segment<'_> {
         i_write_enabled: bool,
         i_read_enabled: bool,
     ) -> Segment {
-        let length = i_data.len();
+        let length = i_data.len() - 1;
         Segment {
             data: i_data,
             start_addr: i_start_addr,
@@ -195,7 +195,7 @@ pub fn read(memspace: &mut [Segment], addr: u16) -> u8 //bus arbitration for rea
     }
 
     for bank in memspace.iter() {
-        if addr >= bank.start_addr && addr < bank.end_addr {
+        if addr >= bank.start_addr && addr <= bank.end_addr {
             if bank.read_enabled {
                 return bank.data[(addr - bank.start_addr) as usize];
             }
@@ -209,7 +209,7 @@ pub fn read(memspace: &mut [Segment], addr: u16) -> u8 //bus arbitration for rea
 pub fn write(memspace: &mut [Segment], addr: u16, data: u8) //bus arbitration for writing bytes
 {
     for bank in memspace.iter_mut() {
-        if addr >= bank.start_addr && addr < bank.end_addr {
+        if addr >= bank.start_addr && addr <= bank.end_addr {
             if bank.write_enabled {
                 bank.data[(addr - bank.start_addr) as usize] = data;
                 break;
