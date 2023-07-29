@@ -26,19 +26,21 @@ pub fn pia(memory: &mut [Segment], buf: &mut VecDeque<u8>, input: &mut Option<ch
     if memory[IN].data[DSP] > 0x7f   //is bit 7 of DSP set?
     {
         let mut out_char: u8 = memory[OUT].data[DSP] & !0x80;     //get byte and convert to valid ASCII
-        if out_char == 0xd                                        //convert any Carriage Returns to Line Feeds
-        { 
-            out_char = 0xa;
-        } 
 
-        buf.push_back(out_char);                //add converted character to the text buffer
+        if out_char != 0x0                                      //make sure we're not passing a null character to the buffer
+        {
+            if out_char == 0xd                                        //convert any Carriage Returns to Line Feeds
+            { 
+                out_char = 0xa;
+            }
+
+            buf.push_back(out_char);                //add converted character to the text buffer
+            scroll(buf);
+        }
+
         memory[IN].data[DSP] &= !0x80;          //clear bit 7 to let woz monitor know we got the byte
 
-        scroll(buf);
-
         printed = true;
-
-        //println!("out: {} {}", out_char, out_char as char);
     }
 
     if input.is_some() {
@@ -92,8 +94,10 @@ pub fn render_screen(screen: &mut Canvas<Window>, texture_creator: &TextureCreat
 {
     screen.clear();
 
-    let text = font.render(&String::from_utf8_lossy(terminal_buf.make_contiguous()))
-        .blended_wrapped(Color::RGB(255, 255, 255), 560);
+    let str = &String::from_utf8_lossy(terminal_buf.make_contiguous());
+    
+    let text = font.render(str).blended_wrapped(Color::RGB(255, 255, 255), 560);
+    
     if text.is_ok()
     {
         let text_texture = text.unwrap().as_texture(&texture_creator).unwrap();

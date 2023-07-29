@@ -17,8 +17,8 @@ pub struct CpuStatus //contains the registers of the CPU, the clock speed, and o
     pub debug_text: bool,
     pub clock_time: u64,
     pub running: bool,
-    pub irq: bool,
-    pub nmi: bool
+    external_irq: bool,
+    external_nmi: bool
 }
 
 
@@ -26,7 +26,7 @@ impl CpuStatus
 {
     pub fn new(speed: u64) -> CpuStatus
     {
-        CpuStatus {a:0, x:0, y:0, pc:0xfffc, sr:0b00100100, sp:0, last_op: 0, cycles_used: 0, reset: true, debug_text: false, clock_time: (1000000000 / speed), running: true, irq: false, nmi: false}
+        CpuStatus {a:0, x:0, y:0, pc:0xfffc, sr:0b00100100, sp:0, last_op: 0, cycles_used: 0, reset: true, debug_text: false, clock_time: (1000000000 / speed), running: true, external_irq: false, external_nmi: false}
     }
 
     pub fn status_report(&mut self)
@@ -44,12 +44,7 @@ impl CpuStatus
         if self.reset                                                    //do we need to reset the CPU?
         {
             self.pc = 0xfffc;
-
-            let lo_byte : u8 = bus::read(memory,self.pc); //retrieve reset vector from ROM
-            self.pc += 1;
-            let hi_byte : u8 = bus::read(memory,self.pc);
-
-            self.pc = lo_byte as u16 + ((hi_byte as u16) << 8);           //set new program counter at reset routine
+            self.pc = bus::absolute(memory, self);           //set new program counter at reset routine
             
             self.cycles_used += 7;
             self.reset = false;
@@ -57,15 +52,45 @@ impl CpuStatus
             if self.debug_text { println!("Starting program execution at {:#06x}", self.pc) }
         }
 
+        if self.external_nmi                                           //was there a non-maskable interrupt request?
+        {
+            bus::push_stack(memory, self, ((self.pc & 0xff00) >> 8) as u8); //handle NMI
+            bus::push_stack(memory, self, (self.pc & 0x00ff) as u8);
+            bus::push_stack(memory, self, self.sr);
+
+            self.pc = 0xfffa;
+            self.pc = bus::absolute(memory, self);
+
+            self.set_interrupt(true);
+
+            self.cycles_used += 7;
+            self.external_nmi = false;
+            self.external_irq = false;
+        }
+        else if self.external_irq                                            //was there an interrupt request?
+        {
+            bus::push_stack(memory, self, ((self.pc & 0xff00) >> 8) as u8); //handle IRQ
+            bus::push_stack(memory, self, (self.pc & 0x00ff) as u8);
+            bus::push_stack(memory, self, self.sr);
+
+            self.pc = 0xfffe;
+            self.pc = bus::absolute(memory, self);
+
+            self.set_interrupt(true);
+
+            self.cycles_used += 7;
+            self.external_irq = false;
+        }
+
         let opcode: u8 = bus::read(memory, self.pc);        //get the current opcode
         self.last_op = opcode;
 
-        self.pc += 1; 
+        self.pc = self.pc.wrapping_add(1); 
 
         match opcode            //which instruction is it?
         {
             //Add With Carry
-            0x69 => {self.adc(memory, 2, self.pc); self.pc += 1}, //ADC Immediate
+            0x69 => {self.adc(memory, 2, self.pc); self.pc = self.pc.wrapping_add(1)}, //ADC Immediate
             0x65 => {addr = bus::zp(memory, self); self.adc(memory, 3, addr)}, //ADC ZP
             0x75 => {addr = bus::zp_x(memory, self); self.adc(memory, 4, addr)}, //ADC ZP,X
             0x6d => {addr = bus::absolute(memory, self); self.adc(memory, 4, addr)}, //ADC Absolute
@@ -75,7 +100,7 @@ impl CpuStatus
             0x71 => {addr = bus::indirect_y(memory, self, true); self.adc(memory, 5, addr)}, //ADC Indirect,Y
 
             //And Bitwise with Accumulator
-            0x29 => {self.and(memory, 2, self.pc); self.pc += 1}, //AND Immediate
+            0x29 => {self.and(memory, 2, self.pc); self.pc = self.pc.wrapping_add(1)}, //AND Immediate
             0x25 => {addr = bus::zp(memory, self); self.and(memory, 3, addr)}, //AND ZP
             0x35 => {addr = bus::zp_x(memory, self); self.and(memory, 4, addr)}, //AND ZP,X
             0x2d => {addr = bus::absolute(memory, self); self.and(memory, 4, addr)}, //AND Absolute
@@ -106,6 +131,7 @@ impl CpuStatus
             0xf0 => {flag = self.zero_flag(); self.branch(memory, flag)}, //BEQ Branch on EQual
 
             //Break
+            0x00 => {self.brk(memory, 7)},
 
             //Clear Flag Instructions
             0x18 => {self.cycles_used += 2; self.set_carry(false)}, //CLC
@@ -115,7 +141,7 @@ impl CpuStatus
 
 
             //Compare with Accumulator
-            0xc9 => {self.cmp(memory, 2, self.pc); self.pc += 1}, //CMP Immediate
+            0xc9 => {self.cmp(memory, 2, self.pc); self.pc = self.pc.wrapping_add(1)}, //CMP Immediate
             0xc5 => {addr = bus::zp(memory, self); self.cmp(memory, 3, addr)}, //CMP ZP
             0xd5 => {addr = bus::zp_x(memory, self); self.cmp(memory, 4, addr)}, //CMP ZP,X
             0xcd => {addr = bus::absolute(memory, self); self.cmp(memory, 4, addr)}, //CMP Absolute
@@ -126,13 +152,13 @@ impl CpuStatus
 
 
             //Compare with X
-            0xe0 => {self.cpx(memory, 2, self.pc); self.pc += 1}, //CPX Immediate
+            0xe0 => {self.cpx(memory, 2, self.pc); self.pc = self.pc.wrapping_add(1)}, //CPX Immediate
             0xe4 => {addr = bus::zp(memory, self); self.cpx(memory, 3, addr)}, //CPX ZP
             0xec => {addr = bus::absolute(memory, self); self.cpx(memory, 4, addr)}, //CPX Absolute
 
 
             //Compare with Y
-            0xc0 => {self.cpy(memory, 2, self.pc); self.pc += 1}, //CPY Immediate
+            0xc0 => {self.cpy(memory, 2, self.pc); self.pc = self.pc.wrapping_add(1)}, //CPY Immediate
             0xc4 => {addr = bus::zp(memory, self); self.cpy(memory, 3, addr)}, //CPY ZP
             0xcc => {addr = bus::absolute(memory, self); self.cpy(memory, 4, addr)}, //CPY Absolute
 
@@ -153,7 +179,7 @@ impl CpuStatus
 
 
             //Exclusive OR
-            0x49 => {self.eor(memory, 2, self.pc); self.pc += 1}, //EOR Immediate
+            0x49 => {self.eor(memory, 2, self.pc); self.pc = self.pc.wrapping_add(1)}, //EOR Immediate
             0x45 => {addr = bus::zp(memory, self); self.eor(memory, 3, addr)}, //EOR ZP
             0x55 => {addr = bus::zp_x(memory, self); self.eor(memory, 4, addr)}, //EOR ZP,X
             0x4d => {addr = bus::absolute(memory, self); self.eor(memory, 4, addr)}, //EOR Absolute
@@ -190,7 +216,7 @@ impl CpuStatus
 
 
             //Load A
-            0xa9 => {self.lda(memory, 2, self.pc); self.pc += 1}, //LDA Immediate
+            0xa9 => {self.lda(memory, 2, self.pc); self.pc = self.pc.wrapping_add(1)}, //LDA Immediate
             0xa5 => {addr = bus::zp(memory, self); self.lda(memory, 3, addr)}, //LDA ZP
             0xb5 => {addr = bus::zp_x(memory, self); self.lda(memory, 4, addr)}, //LDA ZP,X
             0xad => {addr = bus::absolute(memory, self); self.lda(memory, 4, addr)}, //LDA Absolute
@@ -201,7 +227,7 @@ impl CpuStatus
 
 
             //Load X
-            0xa2 => {self.ldx(memory, 2, self.pc); self.pc += 1}, //LDX Immediate
+            0xa2 => {self.ldx(memory, 2, self.pc); self.pc = self.pc.wrapping_add(1)}, //LDX Immediate
             0xa6 => {addr = bus::zp(memory, self); self.ldx(memory, 3, addr)}, //LDX ZP
             0xb6 => {addr = bus::zp_y(memory, self); self.ldx(memory, 4, addr)}, //LDX ZP,Y
             0xae => {addr = bus::absolute(memory, self); self.ldx(memory, 4, addr)}, //LDX Absolute
@@ -209,7 +235,7 @@ impl CpuStatus
 
 
             //Load Y
-            0xa0 => {self.ldy(memory, 2, self.pc); self.pc += 1}, //LDY Immediate
+            0xa0 => {self.ldy(memory, 2, self.pc); self.pc = self.pc.wrapping_add(1)}, //LDY Immediate
             0xa4 => {addr = bus::zp(memory, self); self.ldy(memory, 3, addr)}, //LDY ZP
             0xb4 => {addr = bus::zp_x(memory, self); self.ldy(memory, 4, addr)}, //LDY ZP,X
             0xac => {addr = bus::absolute(memory, self); self.ldy(memory, 4, addr)}, //LDY Absolute
@@ -225,7 +251,7 @@ impl CpuStatus
 
 
             //OR with Accumulator
-            0x09 => {self.ora(memory, 2, self.pc); self.pc += 1}, //ORA Immediate
+            0x09 => {self.ora(memory, 2, self.pc); self.pc = self.pc.wrapping_add(1)}, //ORA Immediate
             0x05 => {addr = bus::zp(memory, self); self.ora(memory, 3, addr)}, //ORA ZP
             0x15 => {addr = bus::zp_x(memory, self); self.ora(memory, 4, addr)}, //ORA ZP,X
             0x0d => {addr = bus::absolute(memory, self); self.ora(memory, 4, addr)}, //ORA Absolute
@@ -256,6 +282,7 @@ impl CpuStatus
 
 
             //Return from Interrupt
+            0x40 => {self.rti(memory, 6)},
 
 
             //Return from Subroutine
@@ -263,7 +290,7 @@ impl CpuStatus
 
 
             //Subtract with Carry
-            0xe9 => {self.sbc(memory, 2, self.pc); self.pc += 1}, //SBC Immediate
+            0xe9 => {self.sbc(memory, 2, self.pc); self.pc = self.pc.wrapping_add(1)}, //SBC Immediate
             0xe5 => {addr = bus::zp(memory, self); self.sbc(memory, 3, addr)}, //SBC ZP
             0xf5 => {addr = bus::zp_x(memory, self); self.sbc(memory, 4, addr)}, //SBC ZP,X
             0xed => {addr = bus::absolute(memory, self); self.sbc(memory, 4, addr)}, //SBC Absolute
@@ -366,7 +393,9 @@ impl CpuStatus
     
                     self.status_report(); 
                 },
-    
+                
+                "irq" => self.irq(),
+                "nmi" => self.nmi(),
                 "exit" => return false,                                //exit command: close emulator
                 _ => println!("What?")
             }
@@ -396,7 +425,7 @@ impl CpuStatus
         Ok((addr, byte))
    }
 
-   pub fn adc(&mut self, memory: &mut [Segment], cycles: u8, i_addr: u16) 
+   fn adc(&mut self, memory: &mut [Segment], cycles: u8, i_addr: u16) 
    {
         let byte: u8 = bus::read(memory, i_addr);
 
@@ -462,7 +491,7 @@ impl CpuStatus
         self.cycles_used += cycles
     }
 
-    pub fn and(&mut self, memory: &mut [Segment], cycles: u8, i_addr: u16) 
+    fn and(&mut self, memory: &mut [Segment], cycles: u8, i_addr: u16) 
     {
         let byte: u8 = bus::read(memory, i_addr);
 
@@ -474,7 +503,7 @@ impl CpuStatus
         self.cycles_used += cycles
     }
 
-    pub fn asl(&mut self, memory: &mut [Segment], cycles: u8, i_addr: Option<u16>) 
+    fn asl(&mut self, memory: &mut [Segment], cycles: u8, i_addr: Option<u16>) 
     {
         let mut byte: u8;
 
@@ -497,7 +526,7 @@ impl CpuStatus
         self.cycles_used += cycles
     }
 
-    pub fn bit(&mut self, memory: &mut [Segment], cycles: u8, i_addr: u16) 
+    fn bit(&mut self, memory: &mut [Segment], cycles: u8, i_addr: u16) 
     {
         let byte: u8 = bus::read(memory, i_addr);
 
@@ -508,7 +537,7 @@ impl CpuStatus
         self.cycles_used += cycles
     }
 
-    pub fn branch(&mut self, memory: &mut [Segment], flag: bool)
+    fn branch(&mut self, memory: &mut [Segment], flag: bool)
     //basis for all branch instructions
     {
         self.cycles_used += 2; //use two cycles no matter what
@@ -554,7 +583,22 @@ impl CpuStatus
         }
     }
 
-    pub fn cmp(&mut self, memory: &mut [Segment], cycles: u8, i_addr: u16) 
+    fn brk(&mut self, memory: &mut [Segment], cycles: u8)
+    {
+        self.pc += 1;
+        self.set_break(true);
+
+        bus::push_stack(memory, self, ((self.pc & 0xff00) >> 8) as u8);
+        bus::push_stack(memory, self, (self.pc & 0x00ff) as u8);
+        bus::push_stack(memory, self, self.sr);
+
+        self.pc = 0xfffe;
+        self.pc = bus::absolute(memory, self);
+
+        self.cycles_used += cycles;
+    }
+
+    fn cmp(&mut self, memory: &mut [Segment], cycles: u8, i_addr: u16) 
     {
         let byte: u8 = bus::read(memory, i_addr);
 
@@ -565,7 +609,7 @@ impl CpuStatus
         self.cycles_used += cycles
     }
 
-    pub fn cpx(&mut self, memory: &mut [Segment], cycles: u8, i_addr: u16) 
+    fn cpx(&mut self, memory: &mut [Segment], cycles: u8, i_addr: u16) 
     {
         let byte: u8 = bus::read(memory, i_addr);
 
@@ -576,7 +620,7 @@ impl CpuStatus
         self.cycles_used += cycles
     }
 
-    pub fn cpy(&mut self, memory: &mut [Segment], cycles: u8, i_addr: u16) 
+    fn cpy(&mut self, memory: &mut [Segment], cycles: u8, i_addr: u16) 
     {
         let byte: u8 = bus::read(memory, i_addr);
 
@@ -587,7 +631,7 @@ impl CpuStatus
         self.cycles_used += cycles
     }
 
-    pub fn dec(&mut self, memory: &mut [Segment], cycles: u8, i_addr: u16) 
+    fn dec(&mut self, memory: &mut [Segment], cycles: u8, i_addr: u16) 
     {
         let mut byte: u8 = bus::read(memory, i_addr);
 
@@ -601,7 +645,7 @@ impl CpuStatus
         self.cycles_used += cycles
     }
 
-    pub fn eor(&mut self, memory: &mut [Segment], cycles: u8, i_addr: u16) 
+    fn eor(&mut self, memory: &mut [Segment], cycles: u8, i_addr: u16) 
     {
         let byte: u8 = bus::read(memory, i_addr);
 
@@ -613,7 +657,7 @@ impl CpuStatus
         self.cycles_used += cycles
     }
 
-    pub fn inc(&mut self, memory: &mut [Segment], cycles: u8, i_addr: u16) 
+    fn inc(&mut self, memory: &mut [Segment], cycles: u8, i_addr: u16) 
     {
         let mut byte: u8 = bus::read(memory, i_addr);
 
@@ -627,7 +671,7 @@ impl CpuStatus
         self.cycles_used += cycles
     }
 
-    pub fn jmp(&mut self, cycles: u8, i_addr: u16) 
+    fn jmp(&mut self, cycles: u8, i_addr: u16) 
     {
         self.pc = i_addr;
 
@@ -638,7 +682,7 @@ impl CpuStatus
         }
     }
 
-    pub fn jsr(&mut self, memory: &mut [Segment], cycles: u8, i_addr: u16) 
+    fn jsr(&mut self, memory: &mut [Segment], cycles: u8, i_addr: u16) 
     {
         let return_addr: u16 = self.pc - 1;
         let return_byte_lo: u8 = (return_addr & 0xff) as u8;
@@ -656,7 +700,7 @@ impl CpuStatus
         }
     }
 
-    pub fn lda(&mut self, memory: &mut [Segment], cycles: u8, i_addr: u16) 
+    fn lda(&mut self, memory: &mut [Segment], cycles: u8, i_addr: u16) 
     {
         let byte: u8;
         byte = bus::read(memory, i_addr);
@@ -669,7 +713,7 @@ impl CpuStatus
         self.cycles_used += cycles
     }
 
-    pub fn ldx(&mut self, memory: &mut [Segment], cycles: u8, i_addr: u16) 
+    fn ldx(&mut self, memory: &mut [Segment], cycles: u8, i_addr: u16) 
     {
         let byte: u8;
         byte = bus::read(memory, i_addr);
@@ -682,7 +726,7 @@ impl CpuStatus
         self.cycles_used += cycles
     }
 
-    pub fn ldy(&mut self, memory: &mut [Segment], cycles: u8, i_addr: u16) 
+    fn ldy(&mut self, memory: &mut [Segment], cycles: u8, i_addr: u16) 
     {
         let byte: u8;
         byte = bus::read(memory, i_addr);
@@ -695,7 +739,7 @@ impl CpuStatus
         self.cycles_used += cycles
     }
 
-    pub fn lsr(&mut self, memory: &mut [Segment], cycles: u8, i_addr: Option<u16>) 
+    fn lsr(&mut self, memory: &mut [Segment], cycles: u8, i_addr: Option<u16>) 
     {
         let mut byte: u8;
 
@@ -718,7 +762,7 @@ impl CpuStatus
         self.cycles_used += cycles
     }
 
-    pub fn ora(&mut self, memory: &mut [Segment], cycles: u8, i_addr: u16) 
+    fn ora(&mut self, memory: &mut [Segment], cycles: u8, i_addr: u16) 
     {
         let byte: u8 = bus::read(memory, i_addr);
 
@@ -730,7 +774,7 @@ impl CpuStatus
         self.cycles_used += cycles
     }
 
-    pub fn rol(&mut self, memory: &mut [Segment], cycles: u8, i_addr: Option<u16>) 
+    fn rol(&mut self, memory: &mut [Segment], cycles: u8, i_addr: Option<u16>) 
     {
         let mut byte: u8;
 
@@ -757,7 +801,7 @@ impl CpuStatus
         self.cycles_used += cycles
     }
 
-    pub fn ror(&mut self, memory: &mut [Segment], cycles: u8, i_addr: Option<u16>) 
+    fn ror(&mut self, memory: &mut [Segment], cycles: u8, i_addr: Option<u16>) 
     {
         let mut byte: u8;
 
@@ -784,7 +828,19 @@ impl CpuStatus
         self.cycles_used += cycles
     }
 
-    pub fn rts(&mut self, memory: &mut [Segment], cycles: u8) 
+    fn rti(&mut self, memory: &mut [Segment], cycles: u8) 
+    {
+        self.sr = self.sr & 0x30 | (bus::pull_stack(memory, self) & 0xcf);
+
+        let return_byte_lo: u8 = bus::pull_stack(memory, self);
+        let return_byte_hi: u8 = bus::pull_stack(memory, self);
+
+        self.pc = ((return_byte_hi as u16) << 8) + return_byte_lo as u16;
+
+        self.cycles_used += cycles
+    }
+
+    fn rts(&mut self, memory: &mut [Segment], cycles: u8) 
     {
         let return_byte_lo: u8 = bus::pull_stack(memory, self);
         let return_byte_hi: u8 = bus::pull_stack(memory, self);
@@ -794,7 +850,7 @@ impl CpuStatus
         self.cycles_used += cycles
     }
 
-    pub fn sbc(&mut self, memory: &mut [Segment], cycles: u8, i_addr: u16) 
+    fn sbc(&mut self, memory: &mut [Segment], cycles: u8, i_addr: u16) 
     {
         let byte: u8 = bus::read(memory, i_addr); //the only difference between add and subtract is using the inverse of the byte to be added!
         let c_byte = !byte;
@@ -861,28 +917,28 @@ impl CpuStatus
         self.cycles_used += cycles
     }
 
-    pub fn sta(&mut self, memory: &mut [Segment], cycles: u8, i_addr: u16) 
+    fn sta(&mut self, memory: &mut [Segment], cycles: u8, i_addr: u16) 
     {
         bus::write(memory, i_addr, self.a);
 
         self.cycles_used += cycles
     }
 
-    pub fn stx(&mut self, memory: &mut [Segment], cycles: u8, i_addr: u16) 
+    fn stx(&mut self, memory: &mut [Segment], cycles: u8, i_addr: u16) 
     {
         bus::write(memory, i_addr, self.x);
 
         self.cycles_used += cycles
     }
 
-    pub fn sty(&mut self, memory: &mut [Segment], cycles: u8, i_addr: u16) 
+    fn sty(&mut self, memory: &mut [Segment], cycles: u8, i_addr: u16) 
     {
         bus::write(memory, i_addr, self.y);
 
         self.cycles_used += cycles
     }
 
-    pub fn transfer(&mut self, origin: char, destination: char) 
+    fn transfer(&mut self, origin: char, destination: char) 
     {
         let val: u8;
 
@@ -986,6 +1042,19 @@ impl CpuStatus
     pub fn set_negative(&mut self, flag: bool)
     {
         if flag { self.sr |= 0b10000000 } else { self.sr &= !0b10000000 }
+    }
+
+    pub fn irq(&mut self)
+    {
+        if !self.interrupt_flag()
+        {
+            self.external_irq = true;
+        }
+    }
+
+    pub fn nmi(&mut self)
+    {
+        self.external_nmi = true;
     }
 
 

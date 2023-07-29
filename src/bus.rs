@@ -33,9 +33,9 @@ pub fn absolute(memspace: &mut [Segment], reg: &mut CpuStatus) -> u16 //Absolute
     let o_addr: u16;
 
     lo_byte = read(memspace, reg.pc);
-    reg.pc += 1;
+    reg.pc = reg.pc.wrapping_add(1);
     hi_byte = read(memspace, reg.pc);
-    reg.pc += 1;
+    reg.pc = reg.pc.wrapping_add(1);
 
     o_addr = ((hi_byte as u16) << 8) + lo_byte as u16;
 
@@ -50,9 +50,9 @@ pub fn absolute_x(memspace: &mut [Segment], reg: &mut CpuStatus, wrap_check: boo
     let o_addr: u16;
 
     lo_byte = read(memspace, reg.pc);
-    reg.pc += 1;
+    reg.pc = reg.pc.wrapping_add(1);
     hi_byte = read(memspace, reg.pc);
-    reg.pc += 1;
+    reg.pc = reg.pc.wrapping_add(1);
 
     addr = ((hi_byte as u16) << 8) + lo_byte as u16;
 
@@ -73,9 +73,9 @@ pub fn absolute_y(memspace: &mut [Segment], reg: &mut CpuStatus, wrap_check: boo
     let o_addr: u16;
 
     lo_byte = read(memspace, reg.pc);
-    reg.pc += 1;
+    reg.pc = reg.pc.wrapping_add(1);
     hi_byte = read(memspace, reg.pc);
-    reg.pc += 1;
+    reg.pc = reg.pc.wrapping_add(1);
 
     addr = ((hi_byte as u16) << 8) + lo_byte as u16;
 
@@ -93,7 +93,7 @@ pub fn zp(memspace: &mut [Segment], reg: &mut CpuStatus) -> u16 //Zero Page
     let o_addr: u16;
 
     o_addr = read(memspace, reg.pc) as u16;
-    reg.pc += 1;
+    reg.pc = reg.pc.wrapping_add(1);
 
     return o_addr;
 }
@@ -103,7 +103,7 @@ pub fn zp_x(memspace: &mut [Segment], reg: &mut CpuStatus) -> u16 //Zero Page + 
     let o_addr: u8;
 
     o_addr = read(memspace, reg.pc).wrapping_add(reg.x);
-    reg.pc += 1;
+    reg.pc = reg.pc.wrapping_add(1);
 
     return o_addr as u16;
 }
@@ -113,7 +113,7 @@ pub fn zp_y(memspace: &mut [Segment], reg: &mut CpuStatus) -> u16 //Zero Page + 
     let o_addr: u8;
 
     o_addr = read(memspace, reg.pc).wrapping_add(reg.y);
-    reg.pc += 1;
+    reg.pc = reg.pc.wrapping_add(1);
 
     return o_addr as u16;
 }
@@ -128,9 +128,9 @@ pub fn indirect(memspace: &mut [Segment], reg: &mut CpuStatus) -> u16 //indirect
     let mut o_addr: u16;
 
     lo_byte = read(memspace, reg.pc);
-    reg.pc += 1;
+    reg.pc = reg.pc.wrapping_add(1);
     hi_byte = read(memspace, reg.pc);
-    reg.pc += 1;
+    reg.pc = reg.pc.wrapping_add(1);
 
     i_addr = (hi_byte as u16) << 8;
     i_addr2 = i_addr;
@@ -152,7 +152,7 @@ pub fn indirect_x(memspace: &mut [Segment], reg: &mut CpuStatus) -> u16 //Indire
     let o_addr: u16;
 
     zp_addr = read(memspace, reg.pc).wrapping_add(reg.x);
-    reg.pc += 1;
+    reg.pc = reg.pc.wrapping_add(1);
     lo_byte = read(memspace, zp_addr as u16);
     hi_byte = read(memspace, (zp_addr as u16).wrapping_add(1));
 
@@ -171,7 +171,7 @@ pub fn indirect_y(memspace: &mut [Segment], reg: &mut CpuStatus, wrap_check: boo
     let o_addr: u16;
 
     zp_addr = read(memspace, reg.pc);
-    reg.pc += 1;
+    reg.pc = reg.pc.wrapping_add(1);
     lo_byte = read(memspace, zp_addr as u16);
     hi_byte = read(memspace, (zp_addr as u16).wrapping_add(1));
 
