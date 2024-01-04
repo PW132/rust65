@@ -55,6 +55,7 @@ pub fn pia(memory: &mut [Segment], buf: &mut VecDeque<u8>, input: &mut Option<ch
     return printed;
 }
 
+
 pub fn scroll(buf: &mut VecDeque<u8>) //handle scrolling the display if the buffer is full
 {
     let mut rows_used = 0;
@@ -89,6 +90,7 @@ pub fn scroll(buf: &mut VecDeque<u8>) //handle scrolling the display if the buff
         }
     }
 }
+
 
 pub fn render_screen(screen: &mut Canvas<Window>, texture_creator: &TextureCreator<WindowContext>, terminal_buf: &mut VecDeque<u8>, font: &Font)
 {

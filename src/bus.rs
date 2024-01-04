@@ -26,6 +26,7 @@ impl Segment<'_> {
     }
 }
 
+
 pub fn absolute(memspace: &mut [Segment], reg: &mut CpuStatus) -> u16 //Absolute
 {
     let lo_byte: u8;
@@ -186,6 +187,7 @@ pub fn indirect_y(memspace: &mut [Segment], reg: &mut CpuStatus, wrap_check: boo
     return o_addr;
 }
 
+
 pub fn read(memspace: &mut [Segment], addr: u16) -> u8 //bus arbitration for reading bytes
 {
     match addr //put special effects that happen upon a read from a certain address here
@@ -225,6 +227,7 @@ pub fn write(memspace: &mut [Segment], addr: u16, data: u8) //bus arbitration fo
 
     return;
 }
+
 
 pub fn push_stack(memory: &mut [Segment], reg: &mut CpuStatus, data: u8)
 //push a byte onto the stack and update the pointer

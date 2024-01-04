@@ -8,6 +8,8 @@ mod terminal;
 extern crate sdl2;
 extern crate spin_sleep;
 
+use config::Config;
+
 use crate::bus::Segment;
 use crate::cpu::CpuStatus;
 
@@ -17,6 +19,7 @@ use std::path::Path;
 use std::str::Chars;
 use std::{panic, time};
 use std::collections::VecDeque;
+use std::collections::HashMap;
 
 use sdl2::keyboard::Keycode;
 use sdl2::pixels::Color;
@@ -26,7 +29,10 @@ use sdl2::event::{Event, WindowEvent};
 fn main() {
     println!("Starting emulator...");
 
-    let rom_path = Path::new("6502.rom.bin"); //read ROM file and keep resident in an array
+    let settings = Config::builder().add_source(config::File::with_name("Settings")).build().unwrap();
+    let unpacked_settings = settings.try_deserialize::<HashMap<String, String>>().unwrap();
+
+    let rom_path = Path::new(unpacked_settings.get("rom_filename").unwrap()); //read ROM file and keep resident in an array
     let mut rom_file = match File::open(rom_path) 
     {
         Err(why) => panic!("couldn't open {}: {}", rom_path.display(), why),
@@ -47,7 +53,7 @@ fn main() {
     let pia_out: &mut[u8] = &mut pia_out_array[..];
 
 
-    let memory: &mut[Segment] = //define memory map
+    let memory: &mut[Segment] =                     //define memory map
     &mut[
         Segment::new(dram, 0, true, true),
         Segment::new(rom, 0xe000, false, true),
@@ -55,8 +61,8 @@ fn main() {
         Segment::new(pia_out, 0xd010, true, false)
     ];
 
-    let clock: u64 = 1000000;
-    let pia_refresh: u64 = clock / 480;                     //The real Apple 1 terminal updated every 16.7 milliseconds. clock / 60 provides a close approximate to the original, diving clock by higher values provides faster print speeds
+    let clock: u64 = unpacked_settings.get("cpu_speed").unwrap().parse().unwrap();
+    let pia_refresh: u64 = clock / unpacked_settings.get("terminal_speed").unwrap().parse::<u64>().unwrap();                     //The real Apple 1 terminal updated every 16.7 milliseconds. clock / 60 provides a close approximate to the original, diving clock by higher values provides faster print speeds
     let video_refresh: u64 = 1000000000 / 120;
 
     let mut nm65 = CpuStatus::new(clock); //create and initialize registers and other cpu state
@@ -77,10 +83,12 @@ fn main() {
     let video_subsystem = sdl_context.video().unwrap();
     let ttf_subsystem = sdl2::ttf::init().unwrap();
 
+    let resolution_multiplier: u32 = unpacked_settings.get("resolution_multiplier").unwrap().parse().unwrap();
+
     let font_path = Path::new("PrintChar21.ttf");                           //Get the Apple font
-    let font = ttf_subsystem.load_font(font_path, 16).unwrap();
+    let font = ttf_subsystem.load_font(font_path, 8 * resolution_multiplier as u16).unwrap();
                                                                                     //create a window and canvas
-    let window = video_subsystem.window("TV Terminal (rust65 Apple I)", 560, 384)
+    let window = video_subsystem.window("TV Terminal (rust65 Apple I)", 280 * resolution_multiplier, 192 * resolution_multiplier)
         .position_centered()
         .build()
         .unwrap();
@@ -131,7 +139,7 @@ fn main() {
             }
         }
 
-        if nm65.running //if true, let's run 6502 code
+        if nm65.running                                           //if true, let's run 6502 code
         {
             let instruction_time = time::Instant::now();
             let check: Result<u8, String> = nm65.execute(memory); //execute an instruction, check for errors
@@ -165,7 +173,7 @@ fn main() {
                     }
 
                     cycle_total = 0;                                                                //reset count
-                    printing = terminal::pia(memory, &mut terminal_buf, &mut i_char);                                       //update the peripherals (keyboard, display)
+                    printing = terminal::pia(memory, &mut terminal_buf, &mut i_char);        //update the peripherals (keyboard, display)
                 }
 
                 //sleep for the amount of time dictated by cycles taken and the CPU speed

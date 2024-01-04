@@ -35,6 +35,7 @@ impl CpuStatus
         println!("Last Opcode: {:#04x} X: {:#04x} Y: {:#04x} A: {:#04x} SP: {:#04x} SR: {:#010b} PC: {:#06x}", self.last_op, self.x, self.y, self.a, self.sp, self.sr, self.pc)
     }
 
+
     pub fn execute<'a>(&mut self, memory: &mut [Segment]) -> Result<u8, String> //runs a single CPU instruction, returns errors if there are any
     {
         self.cycles_used = 0;
@@ -406,6 +407,7 @@ impl CpuStatus
         return true;
    }
 
+
    fn parse_peek(cmd: &String) -> Result<u16, Box<dyn std::error::Error>>
    {
         let addr: u16;
@@ -414,6 +416,7 @@ impl CpuStatus
 
         Ok(addr)
    }
+
 
    fn parse_poke(cmd: &String) -> Result<(u16, u8), Box<dyn std::error::Error>>
    {
@@ -424,6 +427,7 @@ impl CpuStatus
 
         Ok((addr, byte))
    }
+
 
    fn adc(&mut self, memory: &mut [Segment], cycles: u8, i_addr: u16) 
    {
@@ -491,6 +495,7 @@ impl CpuStatus
         self.cycles_used += cycles
     }
 
+
     fn and(&mut self, memory: &mut [Segment], cycles: u8, i_addr: u16) 
     {
         let byte: u8 = bus::read(memory, i_addr);
@@ -502,6 +507,7 @@ impl CpuStatus
 
         self.cycles_used += cycles
     }
+
 
     fn asl(&mut self, memory: &mut [Segment], cycles: u8, i_addr: Option<u16>) 
     {
@@ -526,6 +532,7 @@ impl CpuStatus
         self.cycles_used += cycles
     }
 
+
     fn bit(&mut self, memory: &mut [Segment], cycles: u8, i_addr: u16) 
     {
         let byte: u8 = bus::read(memory, i_addr);
@@ -536,6 +543,7 @@ impl CpuStatus
 
         self.cycles_used += cycles
     }
+
 
     fn branch(&mut self, memory: &mut [Segment], flag: bool)
     //basis for all branch instructions
@@ -583,6 +591,7 @@ impl CpuStatus
         }
     }
 
+
     fn brk(&mut self, memory: &mut [Segment], cycles: u8)
     {
         self.pc += 1;
@@ -598,6 +607,7 @@ impl CpuStatus
         self.cycles_used += cycles;
     }
 
+
     fn cmp(&mut self, memory: &mut [Segment], cycles: u8, i_addr: u16) 
     {
         let byte: u8 = bus::read(memory, i_addr);
@@ -608,6 +618,7 @@ impl CpuStatus
 
         self.cycles_used += cycles
     }
+
 
     fn cpx(&mut self, memory: &mut [Segment], cycles: u8, i_addr: u16) 
     {
@@ -620,6 +631,7 @@ impl CpuStatus
         self.cycles_used += cycles
     }
 
+
     fn cpy(&mut self, memory: &mut [Segment], cycles: u8, i_addr: u16) 
     {
         let byte: u8 = bus::read(memory, i_addr);
@@ -630,6 +642,7 @@ impl CpuStatus
 
         self.cycles_used += cycles
     }
+
 
     fn dec(&mut self, memory: &mut [Segment], cycles: u8, i_addr: u16) 
     {
@@ -645,6 +658,7 @@ impl CpuStatus
         self.cycles_used += cycles
     }
 
+
     fn eor(&mut self, memory: &mut [Segment], cycles: u8, i_addr: u16) 
     {
         let byte: u8 = bus::read(memory, i_addr);
@@ -656,6 +670,7 @@ impl CpuStatus
 
         self.cycles_used += cycles
     }
+
 
     fn inc(&mut self, memory: &mut [Segment], cycles: u8, i_addr: u16) 
     {
@@ -671,6 +686,7 @@ impl CpuStatus
         self.cycles_used += cycles
     }
 
+
     fn jmp(&mut self, cycles: u8, i_addr: u16) 
     {
         self.pc = i_addr;
@@ -681,6 +697,7 @@ impl CpuStatus
             println!("JMP to new address {:#06x}...", self.pc)
         }
     }
+
 
     fn jsr(&mut self, memory: &mut [Segment], cycles: u8, i_addr: u16) 
     {
@@ -700,6 +717,7 @@ impl CpuStatus
         }
     }
 
+
     fn lda(&mut self, memory: &mut [Segment], cycles: u8, i_addr: u16) 
     {
         let byte: u8;
@@ -712,6 +730,7 @@ impl CpuStatus
 
         self.cycles_used += cycles
     }
+
 
     fn ldx(&mut self, memory: &mut [Segment], cycles: u8, i_addr: u16) 
     {
@@ -726,6 +745,7 @@ impl CpuStatus
         self.cycles_used += cycles
     }
 
+
     fn ldy(&mut self, memory: &mut [Segment], cycles: u8, i_addr: u16) 
     {
         let byte: u8;
@@ -738,6 +758,7 @@ impl CpuStatus
 
         self.cycles_used += cycles
     }
+
 
     fn lsr(&mut self, memory: &mut [Segment], cycles: u8, i_addr: Option<u16>) 
     {
@@ -762,6 +783,7 @@ impl CpuStatus
         self.cycles_used += cycles
     }
 
+
     fn ora(&mut self, memory: &mut [Segment], cycles: u8, i_addr: u16) 
     {
         let byte: u8 = bus::read(memory, i_addr);
@@ -773,6 +795,7 @@ impl CpuStatus
 
         self.cycles_used += cycles
     }
+
 
     fn rol(&mut self, memory: &mut [Segment], cycles: u8, i_addr: Option<u16>) 
     {
@@ -801,6 +824,7 @@ impl CpuStatus
         self.cycles_used += cycles
     }
 
+
     fn ror(&mut self, memory: &mut [Segment], cycles: u8, i_addr: Option<u16>) 
     {
         let mut byte: u8;
@@ -828,6 +852,7 @@ impl CpuStatus
         self.cycles_used += cycles
     }
 
+
     fn rti(&mut self, memory: &mut [Segment], cycles: u8) 
     {
         self.sr = self.sr & 0x30 | (bus::pull_stack(memory, self) & 0xcf);
@@ -840,6 +865,7 @@ impl CpuStatus
         self.cycles_used += cycles
     }
 
+
     fn rts(&mut self, memory: &mut [Segment], cycles: u8) 
     {
         let return_byte_lo: u8 = bus::pull_stack(memory, self);
@@ -849,6 +875,7 @@ impl CpuStatus
 
         self.cycles_used += cycles
     }
+
 
     fn sbc(&mut self, memory: &mut [Segment], cycles: u8, i_addr: u16) 
     {
@@ -917,12 +944,14 @@ impl CpuStatus
         self.cycles_used += cycles
     }
 
+
     fn sta(&mut self, memory: &mut [Segment], cycles: u8, i_addr: u16) 
     {
         bus::write(memory, i_addr, self.a);
 
         self.cycles_used += cycles
     }
+
 
     fn stx(&mut self, memory: &mut [Segment], cycles: u8, i_addr: u16) 
     {
@@ -931,12 +960,14 @@ impl CpuStatus
         self.cycles_used += cycles
     }
 
+
     fn sty(&mut self, memory: &mut [Segment], cycles: u8, i_addr: u16) 
     {
         bus::write(memory, i_addr, self.y);
 
         self.cycles_used += cycles
     }
+
 
     fn transfer(&mut self, origin: char, destination: char) 
     {
@@ -1044,6 +1075,7 @@ impl CpuStatus
         if flag { self.sr |= 0b10000000 } else { self.sr &= !0b10000000 }
     }
 
+
     pub fn irq(&mut self)
     {
         if !self.interrupt_flag()
@@ -1056,6 +1088,4 @@ impl CpuStatus
     {
         self.external_nmi = true;
     }
-
-
 }
