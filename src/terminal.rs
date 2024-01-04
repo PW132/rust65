@@ -98,7 +98,7 @@ pub fn render_screen(screen: &mut Canvas<Window>, texture_creator: &TextureCreat
 
     let str = &String::from_utf8_lossy(terminal_buf.make_contiguous());
     
-    let text = font.render(str).blended_wrapped(Color::RGB(255, 255, 255), 560);
+    let text = font.render(str).blended_wrapped(Color::RGB(255, 255, 255), screen.viewport().width());
     
     if text.is_ok()
     {
